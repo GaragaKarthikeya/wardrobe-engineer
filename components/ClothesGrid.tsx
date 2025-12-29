@@ -67,13 +67,33 @@ export function ClothesGrid() {
     const handleDelete = async (id: string) => {
         if (!confirm("Delete this item?")) return;
 
-        // Optimistic removal with animation
+        // Find the item to get its image URL
+        const itemToDelete = items.find((item) => item.id === id);
+
+        // Optimistic removal
         setItems((prev) => prev.filter((item) => item.id !== id));
 
-        const { error } = await supabase.from("items").delete().eq("id", id);
-        if (error) {
-            console.error("Error deleting item:", error);
-            fetchItems(); // Refetch to restore
+        // Delete from database
+        const { error: dbError } = await supabase.from("items").delete().eq("id", id);
+        if (dbError) {
+            console.error("Error deleting item:", dbError);
+            fetchItems();
+            return;
+        }
+
+        // Delete image from storage
+        if (itemToDelete?.image_url) {
+            // Extract filename from URL (format: .../wardrobe/filename)
+            const urlParts = itemToDelete.image_url.split('/');
+            const filename = urlParts[urlParts.length - 1];
+
+            const { error: storageError } = await supabase.storage
+                .from("wardrobe")
+                .remove([filename]);
+
+            if (storageError) {
+                console.error("Error deleting image from storage:", storageError);
+            }
         }
     };
 
