@@ -2,16 +2,24 @@
 
 import { useState, useRef } from "react";
 import { ClothesGrid } from "@/components/ClothesGrid";
-import { Send, Sparkles, X, ImagePlus, Grid3X3, MessageSquare, Loader2 } from "lucide-react";
+import { Send, Sparkles, ImagePlus, Grid3X3, Wand2, Loader2, ChevronRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { analyzeImageAction, recommendOutfitAction } from "./actions";
-import { cn } from "@/lib/utils";
 import { ClothingItem } from "@/types";
 import Image from "next/image";
 import { useToast } from "@/components/Toast";
 import { convertToJpeg, SUPPORTED_FORMATS } from "@/lib/image";
 
 type Tab = "closet" | "stylist";
+
+// Quick prompts for the stylist
+const QUICK_PROMPTS = [
+  "Office meeting",
+  "Casual weekend",
+  "Date night",
+  "Workout",
+  "Brunch",
+];
 
 export default function Home() {
   const { toast } = useToast();
@@ -29,7 +37,6 @@ export default function Home() {
   // Upload State
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState("");
   const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0 });
 
   // Process single image
@@ -38,15 +45,10 @@ export default function Home() {
     const jpegFile = new File([jpegBlob], `${Date.now()}.jpg`, { type: 'image/jpeg' });
 
     const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
-    const { error: uploadError } = await supabase.storage
-      .from("wardrobe")
-      .upload(filename, jpegFile);
-
+    const { error: uploadError } = await supabase.storage.from("wardrobe").upload(filename, jpegFile);
     if (uploadError) throw uploadError;
 
-    const publicUrl = supabase.storage
-      .from("wardrobe")
-      .getPublicUrl(filename).data.publicUrl;
+    const publicUrl = supabase.storage.from("wardrobe").getPublicUrl(filename).data.publicUrl;
 
     const formData = new FormData();
     formData.append("file", jpegFile);
@@ -57,7 +59,6 @@ export default function Home() {
       tags: metadata,
       is_clean: true,
     });
-
     if (dbError) throw dbError;
     return metadata;
   };
@@ -65,46 +66,41 @@ export default function Home() {
   // Batch upload
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files || files.length === 0) return;
+    if (!files?.length) return;
 
     const fileArray = Array.from(files);
-    const total = fileArray.length;
-
     setUploading(true);
-    setBatchProgress({ current: 0, total });
+    setBatchProgress({ current: 0, total: fileArray.length });
 
-    let successCount = 0;
-    let failCount = 0;
-
-    for (let i = 0; i < total; i++) {
-      setBatchProgress({ current: i + 1, total });
-      setUploadProgress(`${i + 1}/${total}`);
-
+    let success = 0, fail = 0;
+    for (let i = 0; i < fileArray.length; i++) {
+      setBatchProgress({ current: i + 1, total: fileArray.length });
       try {
         await processSingleImage(fileArray[i]);
-        successCount++;
-      } catch (error: any) {
-        console.error(`Failed:`, error);
-        failCount++;
+        success++;
+      } catch (e) {
+        fail++;
       }
     }
 
-    if (successCount > 0) toast(`Added ${successCount} item${successCount > 1 ? 's' : ''}!`, "success");
-    if (failCount > 0) toast(`Failed: ${failCount}`, "error");
+    if (success) toast(`Added ${success} item${success > 1 ? 's' : ''}`, "success");
+    if (fail) toast(`${fail} failed`, "error");
 
     setUploading(false);
-    setUploadProgress("");
     setBatchProgress({ current: 0, total: 0 });
     if (fileInputRef.current) fileInputRef.current.value = "";
-    if (successCount > 0) window.location.reload();
+    if (success) window.location.reload();
   };
 
   // Stylist
-  const handleAsk = async () => {
-    if (!input.trim()) return;
+  const handleAsk = async (prompt?: string) => {
+    const query = prompt || input;
+    if (!query.trim()) return;
+
     setLoading(true);
     setRecommendation(null);
     setOutfitItems([]);
+    setInput(query);
 
     try {
       const { data: inventory } = await supabase.from("items").select("*");
@@ -114,185 +110,260 @@ export default function Home() {
         return;
       }
 
-      const result = await recommendOutfitAction(input, inventory);
+      const result = await recommendOutfitAction(query, inventory);
       setRecommendation(result);
 
-      if (result.selected_item_ids?.length > 0) {
-        const { data } = await supabase
-          .from("items")
-          .select("*")
-          .in("id", result.selected_item_ids);
+      if (result.selected_item_ids?.length) {
+        const { data } = await supabase.from("items").select("*").in("id", result.selected_item_ids);
         setOutfitItems(data || []);
       }
-    } catch (error: any) {
-      toast("Failed. Try again.", "error");
+    } catch (e) {
+      toast("Something went wrong", "error");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col">
+    <div
+      className="min-h-screen min-h-[100dvh] flex flex-col"
+      style={{ background: 'var(--color-bg)' }}
+    >
       {/* Header */}
-      <header className="sticky top-0 z-20 bg-zinc-950/90 backdrop-blur-lg border-b border-zinc-800/50 px-4 pt-safe pb-3 flex justify-between items-center">
-        <div>
-          <h1 className="font-mono text-base font-bold tracking-tight text-teal-400">
-            WARDROBE<span className="text-zinc-700">_</span>ENG
-          </h1>
+      <header
+        className="sticky top-0 z-30 pt-safe px-safe backdrop-blur-xl"
+        style={{
+          background: 'rgba(15, 15, 15, 0.85)',
+          borderBottom: '1px solid var(--color-border-subtle)'
+        }}
+      >
+        <div className="flex items-center justify-between py-3">
+          <div>
+            <h1
+              className="text-lg font-semibold tracking-tight"
+              style={{ color: 'var(--color-accent-text)' }}
+            >
+              Wardrobe
+            </h1>
+          </div>
+
+          {activeTab === "closet" && (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium touch-target transition-all active:scale-95"
+              style={{
+                background: uploading ? 'var(--color-accent-muted)' : 'var(--color-surface-elevated)',
+                color: uploading ? 'var(--color-accent-text)' : 'var(--color-text)'
+              }}
+            >
+              {uploading ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>{batchProgress.current}/{batchProgress.total}</span>
+                </>
+              ) : (
+                <>
+                  <ImagePlus size={16} />
+                  <span>Add</span>
+                </>
+              )}
+            </button>
+          )}
         </div>
 
-        {activeTab === "closet" && (
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className={cn(
-              "flex items-center gap-1.5 px-3 py-2 rounded-full text-sm transition-all",
-              uploading
-                ? "bg-teal-500/20 text-teal-400"
-                : "bg-zinc-800 active:bg-zinc-700"
-            )}
-          >
-            {uploading ? (
-              <>
-                <Loader2 size={16} className="animate-spin" />
-                <span>{uploadProgress}</span>
-              </>
-            ) : (
-              <>
-                <ImagePlus size={16} />
-                <span>Add</span>
-              </>
-            )}
-          </button>
-        )}
-
-        <input
-          type="file"
-          ref={fileInputRef}
-          className="hidden"
-          accept={SUPPORTED_FORMATS}
-          multiple
-          onChange={handleFileChange}
-        />
-      </header>
-
-      {/* Batch Progress */}
-      {uploading && batchProgress.total > 1 && (
-        <div className="px-4 py-2 bg-zinc-900 border-b border-zinc-800">
-          <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
+        {/* Progress bar */}
+        {uploading && batchProgress.total > 1 && (
+          <div className="h-0.5 -mb-px" style={{ background: 'var(--color-surface)' }}>
             <div
-              className="h-full bg-teal-500 transition-all"
-              style={{ width: `${(batchProgress.current / batchProgress.total) * 100}%` }}
+              className="h-full transition-all duration-300"
+              style={{
+                width: `${(batchProgress.current / batchProgress.total) * 100}%`,
+                background: 'var(--color-accent)'
+              }}
             />
           </div>
-        </div>
-      )}
+        )}
+      </header>
+
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        accept={SUPPORTED_FORMATS}
+        multiple
+        onChange={handleFileChange}
+      />
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto px-safe">
         {activeTab === "closet" && (
-          <div className="p-4">
+          <div className="py-4">
             <ClothesGrid />
           </div>
         )}
 
         {activeTab === "stylist" && (
-          <div className="p-4 flex flex-col h-full">
-            {/* Chat-like UI */}
-            <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
-              {!recommendation ? (
-                <>
-                  <Sparkles size={48} className="text-teal-500 mb-4" />
-                  <h2 className="text-xl font-semibold mb-2">AI Stylist</h2>
-                  <p className="text-zinc-500 text-sm max-w-xs">
-                    Describe the occasion and I'll pick the perfect outfit from your clean clothes.
-                  </p>
-                </>
-              ) : (
-                <div className="w-full max-w-md animate-in fade-in">
-                  {/* Outfit Images */}
-                  {outfitItems.length > 0 && (
-                    <div className="flex gap-3 justify-center mb-4 flex-wrap">
-                      {outfitItems.map((item) => (
-                        <div
-                          key={item.id}
-                          className="relative w-24 h-24 rounded-xl overflow-hidden border-2 border-teal-500/50 shadow-lg"
-                        >
-                          <Image
-                            src={item.image_url}
-                            alt={item.tags?.sub_category || "Item"}
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="bg-zinc-900 rounded-2xl p-4 text-left border border-zinc-800">
-                    <p className="text-zinc-300 text-sm leading-relaxed">
-                      {recommendation.reasoning}
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={() => setRecommendation(null)}
-                    className="mt-4 text-teal-500 text-sm"
-                  >
-                    Ask again
-                  </button>
+          <div className="py-6 flex flex-col min-h-full">
+            {!recommendation ? (
+              /* Empty State */
+              <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
+                <div
+                  className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
+                  style={{ background: 'var(--color-accent-muted)' }}
+                >
+                  <Wand2 size={28} style={{ color: 'var(--color-accent)' }} />
                 </div>
-              )}
-            </div>
+                <h2 className="text-xl font-semibold mb-2">AI Stylist</h2>
+                <p className="text-sm mb-6" style={{ color: 'var(--color-text-muted)' }}>
+                  Tell me the occasion and I'll pick the perfect outfit
+                </p>
 
-            {/* Input */}
-            <div className="mt-4">
+                {/* Quick Prompts */}
+                <div className="flex flex-wrap gap-2 justify-center max-w-sm">
+                  {QUICK_PROMPTS.map((prompt) => (
+                    <button
+                      key={prompt}
+                      onClick={() => handleAsk(prompt)}
+                      disabled={loading}
+                      className="px-4 py-2.5 rounded-full text-sm font-medium transition-all active:scale-95"
+                      style={{
+                        background: 'var(--color-surface-elevated)',
+                        color: 'var(--color-text-muted)'
+                      }}
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              /* Result */
+              <div className="flex-1 px-4 animate-fade-in">
+                <div
+                  className="text-xs font-medium uppercase tracking-wider mb-3"
+                  style={{ color: 'var(--color-accent)' }}
+                >
+                  For "{input}"
+                </div>
+
+                {/* Outfit Images */}
+                {outfitItems.length > 0 && (
+                  <div className="flex gap-3 mb-4 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
+                    {outfitItems.map((item) => (
+                      <div
+                        key={item.id}
+                        className="relative w-28 h-28 flex-shrink-0 rounded-2xl overflow-hidden"
+                        style={{
+                          border: '2px solid var(--color-accent)',
+                          boxShadow: '0 8px 24px rgba(245, 158, 11, 0.15)'
+                        }}
+                      >
+                        <Image
+                          src={item.image_url}
+                          alt={item.tags?.sub_category || "Item"}
+                          fill
+                          className="object-cover"
+                        />
+                        <div
+                          className="absolute bottom-0 left-0 right-0 px-2 py-1.5"
+                          style={{ background: 'linear-gradient(transparent, rgba(0,0,0,0.8))' }}
+                        >
+                          <p className="text-[10px] text-white font-medium truncate">
+                            {item.tags?.sub_category || item.tags?.category}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Reasoning */}
+                <div
+                  className="rounded-2xl p-4"
+                  style={{
+                    background: 'var(--color-surface)',
+                    border: '1px solid var(--color-border)'
+                  }}
+                >
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
+                    {recommendation.reasoning}
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => { setRecommendation(null); setInput(""); }}
+                  className="mt-4 text-sm font-medium"
+                  style={{ color: 'var(--color-accent)' }}
+                >
+                  Try another occasion →
+                </button>
+              </div>
+            )}
+
+            {/* Input Bar */}
+            <div
+              className="mt-auto pt-4 pb-2"
+              style={{ borderTop: '1px solid var(--color-border-subtle)' }}
+            >
               <div className="flex gap-2">
                 <input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && !loading && handleAsk()}
-                  placeholder="What's the occasion?"
-                  className="flex-1 bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50"
+                  placeholder="Describe the occasion..."
+                  className="flex-1 px-4 py-3.5 rounded-2xl text-sm outline-none"
+                  style={{
+                    background: 'var(--color-surface)',
+                    border: '1px solid var(--color-border)',
+                    color: 'var(--color-text)'
+                  }}
                 />
                 <button
-                  onClick={handleAsk}
+                  onClick={() => handleAsk()}
                   disabled={loading || !input.trim()}
-                  className="bg-teal-500 text-black font-semibold px-4 py-3 rounded-xl disabled:opacity-40"
+                  className="w-12 h-12 rounded-2xl flex items-center justify-center transition-all active:scale-95 disabled:opacity-40"
+                  style={{ background: 'var(--color-accent)' }}
                 >
-                  {loading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                  {loading ? (
+                    <Loader2 size={18} className="animate-spin text-black" />
+                  ) : (
+                    <Send size={18} className="text-black" />
+                  )}
                 </button>
               </div>
             </div>
           </div>
         )}
-      </div>
+      </main>
 
-      {/* Bottom Tab Navigation */}
-      <nav className="sticky bottom-0 bg-zinc-950 border-t border-zinc-800 pb-safe">
+      {/* Bottom Navigation */}
+      <nav
+        className="sticky bottom-0 pb-safe px-safe"
+        style={{
+          background: 'var(--color-bg)',
+          borderTop: '1px solid var(--color-border-subtle)'
+        }}
+      >
         <div className="flex">
           <button
             onClick={() => setActiveTab("closet")}
-            className={cn(
-              "flex-1 flex flex-col items-center py-3 gap-1 transition-colors",
-              activeTab === "closet" ? "text-teal-400" : "text-zinc-500"
-            )}
+            className="flex-1 flex flex-col items-center py-3 gap-1 touch-target transition-colors"
+            style={{ color: activeTab === "closet" ? 'var(--color-accent)' : 'var(--color-text-subtle)' }}
           >
             <Grid3X3 size={22} />
-            <span className="text-xs">Closet</span>
+            <span className="text-[10px] font-medium">Closet</span>
           </button>
           <button
             onClick={() => setActiveTab("stylist")}
-            className={cn(
-              "flex-1 flex flex-col items-center py-3 gap-1 transition-colors",
-              activeTab === "stylist" ? "text-teal-400" : "text-zinc-500"
-            )}
+            className="flex-1 flex flex-col items-center py-3 gap-1 touch-target transition-colors"
+            style={{ color: activeTab === "stylist" ? 'var(--color-accent)' : 'var(--color-text-subtle)' }}
           >
-            <MessageSquare size={22} />
-            <span className="text-xs">Stylist</span>
+            <Wand2 size={22} />
+            <span className="text-[10px] font-medium">Stylist</span>
           </button>
         </div>
       </nav>
-    </main>
+    </div>
   );
 }
