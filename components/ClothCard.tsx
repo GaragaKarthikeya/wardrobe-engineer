@@ -2,7 +2,7 @@
 
 import { ClothingItem } from "@/types";
 import { cn } from "@/lib/utils";
-import { Check, X, Trash2 } from "lucide-react";
+import { Check, X, Trash2, Edit3 } from "lucide-react";
 import Image from "next/image";
 
 interface ClothCardProps {
@@ -10,15 +10,12 @@ interface ClothCardProps {
     onToggle: (id: string, currentStatus: boolean) => void;
     onDelete?: (id: string) => void;
     highlighted?: boolean;
+    isEditMode?: boolean;
 }
 
-export function ClothCard({ item, onToggle, onDelete, highlighted }: ClothCardProps) {
+export function ClothCard({ item, onToggle, onDelete, highlighted, isEditMode }: ClothCardProps) {
     const handleClick = () => {
-        if (onDelete) {
-            onDelete(item.id);
-        } else {
-            onToggle(item.id, item.is_clean);
-        }
+        onToggle(item.id, item.is_clean);
     };
 
     return (
@@ -30,7 +27,8 @@ export function ClothCard({ item, onToggle, onDelete, highlighted }: ClothCardPr
                     ? "border-green-500/50 hover:border-green-400 hover:shadow-lg hover:shadow-green-500/10"
                     : "border-red-500/50 hover:border-red-400 grayscale-[0.4] opacity-70 hover:opacity-100",
                 highlighted && "ring-4 ring-teal-400 ring-offset-2 ring-offset-zinc-950 scale-105",
-                onDelete && "hover:border-red-500 hover:scale-95"
+                onDelete && "hover:border-red-500 hover:scale-95",
+                isEditMode && "hover:border-blue-500 hover:scale-95"
             )}
         >
             <Image
@@ -50,8 +48,17 @@ export function ClothCard({ item, onToggle, onDelete, highlighted }: ClothCardPr
                 </div>
             )}
 
+            {/* Edit Overlay */}
+            {isEditMode && !onDelete && (
+                <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="bg-blue-500 p-3 rounded-full">
+                        <Edit3 size={24} className="text-white" />
+                    </div>
+                </div>
+            )}
+
             {/* Status Icon */}
-            {!onDelete && (
+            {!onDelete && !isEditMode && (
                 <div className={cn(
                     "absolute top-2 right-2 p-1.5 rounded-full backdrop-blur-md transition-all",
                     item.is_clean

@@ -3,7 +3,7 @@
 // Model and Endpoint Config
 const MODEL = "gemini-3-flash-preview";
 
-// Helper: Build URL at runtime to ensure env var is loaded
+// Helper: Build URL at runtime
 function getApiUrl(): string {
     const apiKey = process.env.GEMINI_KEY;
     if (!apiKey) {
@@ -12,8 +12,11 @@ function getApiUrl(): string {
     return `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`;
 }
 
+// =====================
+// VISION: Analyze Clothing
+// =====================
 export async function analyzeImageAction(formData: FormData) {
-    const url = getApiUrl(); // Get at call time
+    const url = getApiUrl();
 
     const file = formData.get("file") as File;
     if (!file) throw new Error("No file provided");
@@ -22,18 +25,27 @@ export async function analyzeImageAction(formData: FormData) {
     const base64 = Buffer.from(arrayBuffer).toString("base64");
     const mimeType = file.type;
 
-    const prompt = `
-    Analyze this clothing item. Return JSON:
-    {
-      "category": "Top" | "Bottom" | "Shoe" | "Outerwear" | "Accessory",
-      "sub_category": "string",
-      "color": "string",
-      "pattern": "string",
-      "fabric": "string",
-      "formality": "string",
-      "tags": ["string"]
-    }
-  `;
+    // Enhanced prompt for richer metadata
+    const prompt = `You are a fashion expert analyzing a clothing item image.
+
+Extract detailed metadata about this clothing item. Be specific and accurate.
+
+Return a JSON object with this EXACT schema:
+{
+  "category": "Top" | "Bottom" | "Shoe" | "Outerwear" | "Accessory",
+  "sub_category": "string (e.g., T-Shirt, Polo, Jeans, Chinos, Sneakers, Blazer)",
+  "color": "string (primary color, be specific: Navy Blue, Forest Green, Charcoal)",
+  "secondary_color": "string or null (if pattern has multiple colors)",
+  "pattern": "Solid" | "Striped" | "Plaid" | "Floral" | "Graphic" | "Other",
+  "fabric": "string (Cotton, Denim, Wool, Polyester, Linen, etc.)",
+  "formality": "Casual" | "Smart Casual" | "Business" | "Formal",
+  "fit": "Slim" | "Regular" | "Relaxed" | "Oversized",
+  "seasons": ["Spring", "Summer", "Fall", "Winter"],
+  "occasions": ["string (e.g., Office, Date, Casual, Sports, Party)"],
+  "style_notes": "string (brief style description, e.g., 'Classic polo with contrast collar')"
+}
+
+Be accurate about the category. Shirts, T-shirts, Polos = "Top". Jeans, Pants = "Bottom".`;
 
     try {
         const response = await fetch(url, {
@@ -74,8 +86,11 @@ export async function analyzeImageAction(formData: FormData) {
     }
 }
 
+// =====================
+// STYLIST: Recommend Outfit
+// =====================
 export async function recommendOutfitAction(intent: string, inventory: any[]) {
-    const url = getApiUrl(); // Get at call time
+    const url = getApiUrl();
 
     const availableItems = inventory
         .filter((i) => i.is_clean)
@@ -84,16 +99,42 @@ export async function recommendOutfitAction(intent: string, inventory: any[]) {
             ...i.tags
         }));
 
-    const prompt = `
-    User Intent: "${intent}"
-    Available Inventory: ${JSON.stringify(availableItems)}
-
-    Select best outfit. Return JSON:
-    {
-      "selected_item_ids": ["id"],
-      "reasoning": "string"
+    if (availableItems.length === 0) {
+        return {
+            selected_item_ids: [],
+            reasoning: "No clean items available. Mark some clothes as clean first!"
+        };
     }
-  `;
+
+    // Enhanced prompt with style rules
+    const prompt = `You are an expert fashion stylist helping a user choose an outfit.
+
+USER'S OCCASION: "${intent}"
+
+AVAILABLE CLEAN CLOTHES:
+${JSON.stringify(availableItems, null, 2)}
+
+YOUR TASK:
+1. Select a complete outfit (Top + Bottom, optionally add Shoes/Outerwear if available)
+2. Consider color coordination:
+   - Complementary colors work well (Navy + Tan, Black + White)
+   - Avoid clashing patterns
+   - Match formality levels
+3. Match the occasion's dress code
+4. Consider seasonal appropriateness if mentioned
+
+RULES:
+- You MUST select from the provided inventory only
+- Select items by their exact "id" field
+- A complete outfit needs at minimum: 1 Top + 1 Bottom
+- If no suitable match exists, explain why
+
+Return JSON:
+{
+  "selected_item_ids": ["uuid-1", "uuid-2"],
+  "outfit_type": "Casual" | "Smart Casual" | "Business" | "Formal",
+  "reasoning": "Detailed explanation of why this combination works (2-3 sentences)"
+}`;
 
     const body = {
         contents: [{
@@ -141,4 +182,26 @@ export async function recommendOutfitAction(intent: string, inventory: any[]) {
             reasoning: "Stylist error: " + error.message
         }
     }
+}
+
+// =====================
+// UPDATE TAGS: Edit item metadata
+// =====================
+export async function updateItemTagsAction(id: string, tags: any) {
+    const { createClient } = await import('@supabase/supabase-js');
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const { error } = await supabase
+        .from("items")
+        .update({ tags })
+        .eq("id", id);
+
+    if (error) {
+        throw new Error(`Failed to update tags: ${error.message}`);
+    }
+
+    return { success: true };
 }

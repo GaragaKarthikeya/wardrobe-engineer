@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { ClothingItem } from "@/types";
 import { ClothCard } from "./ClothCard";
-import { Loader2, Trash2 } from "lucide-react";
+import { ItemDetailModal } from "./ItemDetailModal";
+import { Loader2, Trash2, Edit3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type FilterCategory = 'all' | 'Top' | 'Bottom' | 'Shoe' | 'Outerwear';
@@ -22,6 +23,8 @@ export function ClothesGrid() {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<FilterCategory>('all');
     const [deleteMode, setDeleteMode] = useState(false);
+    const [editMode, setEditMode] = useState(false);
+    const [selectedItem, setSelectedItem] = useState<ClothingItem | null>(null);
 
     const fetchItems = useCallback(async () => {
         const { data, error } = await supabase
@@ -42,7 +45,6 @@ export function ClothesGrid() {
     }, [fetchItems]);
 
     const handleToggle = async (id: string, currentStatus: boolean) => {
-        // Optimistic Update
         setItems((prev) =>
             prev.map((item) =>
                 item.id === id ? { ...item, is_clean: !currentStatus } : item
@@ -67,13 +69,9 @@ export function ClothesGrid() {
     const handleDelete = async (id: string) => {
         if (!confirm("Delete this item?")) return;
 
-        // Find the item to get its image URL
         const itemToDelete = items.find((item) => item.id === id);
-
-        // Optimistic removal
         setItems((prev) => prev.filter((item) => item.id !== id));
 
-        // Delete from database
         const { error: dbError } = await supabase.from("items").delete().eq("id", id);
         if (dbError) {
             console.error("Error deleting item:", dbError);
@@ -81,23 +79,39 @@ export function ClothesGrid() {
             return;
         }
 
-        // Delete image from storage
         if (itemToDelete?.image_url) {
-            // Extract filename from URL (format: .../wardrobe/filename)
             const urlParts = itemToDelete.image_url.split('/');
             const filename = urlParts[urlParts.length - 1];
 
-            const { error: storageError } = await supabase.storage
-                .from("wardrobe")
-                .remove([filename]);
-
-            if (storageError) {
-                console.error("Error deleting image from storage:", storageError);
-            }
+            await supabase.storage.from("wardrobe").remove([filename]);
         }
     };
 
-    // Filtered items
+    const handleEdit = (id: string) => {
+        const item = items.find((i) => i.id === id);
+        if (item) {
+            setSelectedItem(item);
+        }
+    };
+
+    const handleTagUpdate = (id: string, tags: any) => {
+        setItems((prev) =>
+            prev.map((item) =>
+                item.id === id ? { ...item, tags } : item
+            )
+        );
+    };
+
+    const handleCardClick = (id: string, currentStatus: boolean) => {
+        if (deleteMode) {
+            handleDelete(id);
+        } else if (editMode) {
+            handleEdit(id);
+        } else {
+            handleToggle(id, currentStatus);
+        }
+    };
+
     const filteredItems = filter === 'all'
         ? items
         : items.filter(item => item.tags?.category === filter);
@@ -138,29 +152,46 @@ export function ClothesGrid() {
                     </button>
                 ))}
 
-                {/* Delete Mode Toggle */}
-                <button
-                    onClick={() => setDeleteMode(!deleteMode)}
-                    className={cn(
-                        "ml-auto px-3 py-2 rounded-full text-sm transition-all flex items-center gap-1",
-                        deleteMode
-                            ? "bg-red-500/20 text-red-400 border border-red-500/50"
-                            : "bg-zinc-800 text-zinc-500 hover:text-red-400"
-                    )}
-                >
-                    <Trash2 size={14} />
-                    {deleteMode && <span>Done</span>}
-                </button>
+                <div className="ml-auto flex gap-2">
+                    {/* Edit Mode Toggle */}
+                    <button
+                        onClick={() => { setEditMode(!editMode); setDeleteMode(false); }}
+                        className={cn(
+                            "px-3 py-2 rounded-full text-sm transition-all flex items-center gap-1",
+                            editMode
+                                ? "bg-blue-500/20 text-blue-400 border border-blue-500/50"
+                                : "bg-zinc-800 text-zinc-500 hover:text-blue-400"
+                        )}
+                    >
+                        <Edit3 size={14} />
+                        {editMode && <span>Done</span>}
+                    </button>
+
+                    {/* Delete Mode Toggle */}
+                    <button
+                        onClick={() => { setDeleteMode(!deleteMode); setEditMode(false); }}
+                        className={cn(
+                            "px-3 py-2 rounded-full text-sm transition-all flex items-center gap-1",
+                            deleteMode
+                                ? "bg-red-500/20 text-red-400 border border-red-500/50"
+                                : "bg-zinc-800 text-zinc-500 hover:text-red-400"
+                        )}
+                    >
+                        <Trash2 size={14} />
+                        {deleteMode && <span>Done</span>}
+                    </button>
+                </div>
             </div>
 
             {/* Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 pb-32">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {filteredItems.map((item) => (
                     <ClothCard
                         key={item.id}
                         item={item}
-                        onToggle={handleToggle}
+                        onToggle={handleCardClick}
                         onDelete={deleteMode ? handleDelete : undefined}
+                        isEditMode={editMode}
                     />
                 ))}
             </div>
@@ -169,6 +200,15 @@ export function ClothesGrid() {
                 <p className="text-center text-zinc-600 py-8 font-mono text-sm">
                     No items in this category
                 </p>
+            )}
+
+            {/* Item Detail Modal */}
+            {selectedItem && (
+                <ItemDetailModal
+                    item={selectedItem}
+                    onClose={() => setSelectedItem(null)}
+                    onUpdate={handleTagUpdate}
+                />
             )}
         </div>
     );
