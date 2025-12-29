@@ -15,8 +15,24 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "Wardrobe Engineer",
-  description: "AI-powered personal wardrobe assistant",
+  description: "AI-powered personal wardrobe assistant. Manage your closet, track clean/dirty status, and get AI outfit recommendations.",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icon-512.png",
+    apple: "/apple-touch-icon.png",
+  },
+  openGraph: {
+    title: "Wardrobe Engineer",
+    description: "AI-powered personal wardrobe assistant",
+    images: ["/og-image.png"],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Wardrobe Engineer",
+    description: "AI-powered personal wardrobe assistant",
+    images: ["/og-image.png"],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -29,7 +45,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#09090b",
+  themeColor: "#14b8a6",
 };
 
 export default function RootLayout({

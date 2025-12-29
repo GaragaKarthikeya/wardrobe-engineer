@@ -2,13 +2,14 @@
 
 import { useState, useRef } from "react";
 import { ClothesGrid } from "@/components/ClothesGrid";
-import { Camera, Send, Sparkles, X, Plus } from "lucide-react";
+import { Send, Sparkles, X, Plus, ImagePlus } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { analyzeImageAction, recommendOutfitAction } from "./actions";
 import { cn } from "@/lib/utils";
 import { ClothingItem } from "@/types";
 import Image from "next/image";
 import { useToast } from "@/components/Toast";
+import { convertToJpeg, SUPPORTED_FORMATS } from "@/lib/image";
 
 export default function Home() {
   const { toast } = useToast();
@@ -24,53 +25,91 @@ export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState("");
+  const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0 });
 
-  // Handle Image Upload
+  // Process single image
+  const processSingleImage = async (file: File): Promise<void> => {
+    // Convert to JPEG
+    const jpegBlob = await convertToJpeg(file);
+    const jpegFile = new File([jpegBlob], `${Date.now()}.jpg`, { type: 'image/jpeg' });
+
+    // Upload to Supabase
+    const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
+    const { error: uploadError } = await supabase.storage
+      .from("wardrobe")
+      .upload(filename, jpegFile);
+
+    if (uploadError) throw uploadError;
+
+    const publicUrl = supabase.storage
+      .from("wardrobe")
+      .getPublicUrl(filename).data.publicUrl;
+
+    // Analyze with AI
+    const formData = new FormData();
+    formData.append("file", jpegFile);
+    const metadata = await analyzeImageAction(formData);
+
+    // Save to database
+    const { error: dbError } = await supabase.from("items").insert({
+      image_url: publicUrl,
+      tags: metadata,
+      is_clean: true,
+    });
+
+    if (dbError) throw dbError;
+
+    return metadata;
+  };
+
+  // Handle batch upload
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const fileArray = Array.from(files);
+    const total = fileArray.length;
 
     setUploading(true);
-    setUploadProgress("Uploading...");
+    setBatchProgress({ current: 0, total });
 
-    try {
-      const filename = `${Date.now()}-${file.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from("wardrobe")
-        .upload(filename, file);
+    let successCount = 0;
+    let failCount = 0;
 
-      if (uploadError) throw uploadError;
+    for (let i = 0; i < total; i++) {
+      const file = fileArray[i];
+      setBatchProgress({ current: i + 1, total });
+      setUploadProgress(`Processing ${i + 1}/${total}...`);
 
-      const publicUrl = supabase.storage
-        .from("wardrobe")
-        .getPublicUrl(filename).data.publicUrl;
+      try {
+        await processSingleImage(file);
+        successCount++;
+      } catch (error: any) {
+        console.error(`Failed to process ${file.name}:`, error);
+        failCount++;
+      }
+    }
 
-      setUploadProgress("Analyzing with AI...");
+    // Show result
+    if (successCount > 0) {
+      toast(`Added ${successCount} item${successCount > 1 ? 's' : ''}!`, "success");
+    }
+    if (failCount > 0) {
+      toast(`Failed to add ${failCount} item${failCount > 1 ? 's' : ''}`, "error");
+    }
 
-      const formData = new FormData();
-      formData.append("file", file);
-      const metadata = await analyzeImageAction(formData);
+    setUploading(false);
+    setUploadProgress("");
+    setBatchProgress({ current: 0, total: 0 });
 
-      setUploadProgress("Saving...");
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
 
-      const { error: dbError } = await supabase.from("items").insert({
-        image_url: publicUrl,
-        tags: metadata,
-        is_clean: true,
-      });
-
-      if (dbError) throw dbError;
-
-      toast(`Added: ${metadata.color || ''} ${metadata.sub_category || metadata.category}`, "success");
-
-      // Soft reload - just refresh the page
+    // Reload to show new items
+    if (successCount > 0) {
       window.location.reload();
-    } catch (error: any) {
-      console.error("Upload failed", error);
-      toast(error.message || "Upload failed", "error");
-    } finally {
-      setUploading(false);
-      setUploadProgress("");
     }
   };
 
@@ -117,7 +156,7 @@ export default function Home() {
           <h1 className="font-mono text-lg font-bold tracking-tight text-teal-400">
             WARDROBE<span className="text-zinc-600">_</span>ENGINEER
           </h1>
-          <p className="text-[10px] text-zinc-600 font-mono -mt-0.5">v1.0 // personal</p>
+          <p className="text-[10px] text-zinc-600 font-mono -mt-0.5">v1.1 // batch upload</p>
         </div>
 
         <button
@@ -137,21 +176,38 @@ export default function Home() {
             </>
           ) : (
             <>
-              <Plus size={18} />
+              <ImagePlus size={18} />
               <span className="text-sm hidden sm:inline">Add</span>
             </>
           )}
         </button>
 
+        {/* Multi-file input */}
         <input
           type="file"
           ref={fileInputRef}
           className="hidden"
-          accept="image/*"
-          capture="environment"
+          accept={SUPPORTED_FORMATS}
+          multiple
           onChange={handleFileChange}
         />
       </header>
+
+      {/* Batch Progress Bar */}
+      {uploading && batchProgress.total > 1 && (
+        <div className="px-4 py-2 bg-zinc-900 border-b border-zinc-800">
+          <div className="flex items-center justify-between text-xs text-zinc-400 mb-1">
+            <span>Batch Upload</span>
+            <span>{batchProgress.current}/{batchProgress.total}</span>
+          </div>
+          <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-teal-500 transition-all duration-300"
+              style={{ width: `${(batchProgress.current / batchProgress.total) * 100}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Grid */}
       <div className="p-4 pb-28">
