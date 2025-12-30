@@ -537,7 +537,7 @@ export default function Home() {
       <FilterModal
         isOpen={showFilters}
         onClose={() => setShowFilters(false)}
-        filters={{ category: 'all', status: 'all', formality: 'all', pattern: 'all', seasons: [], occasions: [], sort: 'newest' }}
+        filters={{ category: 'all', status: 'all', sort: 'newest' }}
         setFilters={() => { }}
       />
     </div>

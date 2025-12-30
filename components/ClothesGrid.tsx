@@ -34,18 +34,10 @@ export function ClothesGrid({ showFilters, setShowFilters, refreshTrigger = 0 }:
     const [filters, setFilters] = useState<{
         category: string;
         status: 'all' | 'clean' | 'dirty';
-        formality: string;
-        pattern: string;
-        seasons: string[];
-        occasions: string[];
         sort: 'newest' | 'oldest';
     }>({
         category: 'all',
         status: 'all',
-        formality: 'all',
-        pattern: 'all',
-        seasons: [],
-        occasions: [],
         sort: 'newest'
     });
 
@@ -147,23 +139,6 @@ export function ClothesGrid({ showFilters, setShowFilters, refreshTrigger = 0 }:
             if (filters.category !== 'all' && i.tags?.category !== filters.category) return false;
             if (filters.status === 'clean' && !i.is_clean) return false;
             if (filters.status === 'dirty' && i.is_clean) return false;
-            if (filters.formality !== 'all' && i.tags?.formality !== filters.formality) return false;
-            if (filters.pattern !== 'all' && i.tags?.pattern !== filters.pattern) return false;
-
-            // Season filter (item must have at least one matching season)
-            if (filters.seasons.length > 0) {
-                const itemSeasons = i.tags?.seasons || [];
-                const hasMatchingSeason = filters.seasons.some(s => itemSeasons.includes(s));
-                if (!hasMatchingSeason) return false;
-            }
-
-            // Occasion filter (item must have at least one matching occasion)
-            if (filters.occasions.length > 0) {
-                const itemOccasions = i.tags?.occasions || [];
-                const hasMatchingOccasion = filters.occasions.some(o => itemOccasions.includes(o));
-                if (!hasMatchingOccasion) return false;
-            }
-
             return true;
         })
         .sort((a, b) => {
@@ -171,7 +146,7 @@ export function ClothesGrid({ showFilters, setShowFilters, refreshTrigger = 0 }:
             return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         });
 
-    const hasActiveFilters = filters.category !== 'all' || filters.status !== 'all' || filters.formality !== 'all' || filters.pattern !== 'all' || filters.seasons.length > 0 || filters.occasions.length > 0;
+    const hasActiveFilters = filters.category !== 'all' || filters.status !== 'all';
 
     // Loading State - Premium Skeleton
     if (loading && items.length === 0) {
@@ -318,7 +293,7 @@ export function ClothesGrid({ showFilters, setShowFilters, refreshTrigger = 0 }:
                         No items match your filters.
                     </p>
                     <button
-                        onClick={() => setFilters({ category: 'all', status: 'all', formality: 'all', pattern: 'all', seasons: [], occasions: [], sort: 'newest' })}
+                        onClick={() => setFilters({ category: 'all', status: 'all', sort: 'newest' })}
                         className="mt-3 text-tint text-subheadline font-semibold ios-btn"
                     >
                         Clear Filters

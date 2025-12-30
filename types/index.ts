@@ -12,7 +12,7 @@ export type ClothingTags = {
     sub_category: string;
     color: string;
     formality: 'Casual' | 'Smart Casual' | 'Business' | 'Formal';
-
+    
     // Optional rich metadata
     secondary_color?: string;
     pattern?: string;
@@ -33,7 +33,7 @@ export type ClothingTags = {
     versatility_score?: number;
     care_guess?: string[];
     style_notes?: string;
-
+    
     // Allow any additional AI-generated fields
     [key: string]: unknown;
 };
