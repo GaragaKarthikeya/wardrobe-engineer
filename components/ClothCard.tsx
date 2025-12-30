@@ -90,11 +90,11 @@ export function ClothCard({ item, onToggle, onEdit, onDelete, onSelect, selected
         <div
             className={`fixed inset-0 z-[9999] flex items-center justify-center transition-all duration-200 ${showMenu ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
             onClick={closeMenu}
-            style={{ 
-                position: 'fixed', 
-                top: 0, 
-                left: 0, 
-                right: 0, 
+            style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
                 bottom: 0,
                 backgroundColor: showMenu ? 'rgba(0,0,0,0.5)' : 'transparent',
                 backdropFilter: showMenu ? 'blur(8px)' : 'none',
@@ -109,11 +109,11 @@ export function ClothCard({ item, onToggle, onEdit, onDelete, onSelect, selected
                 <div className="px-4 py-4 border-b border-white/10 flex items-center gap-3">
                     <div className="w-14 h-14 rounded-xl relative overflow-hidden bg-white/5 flex-shrink-0">
                         {/* Use same cached image with priority loading */}
-                        <Image 
-                            src={item.image_url} 
-                            alt="" 
-                            fill 
-                            className="object-cover" 
+                        <Image
+                            src={item.image_url}
+                            alt=""
+                            fill
+                            className="object-cover"
                             sizes="56px"
                             placeholder="blur"
                             blurDataURL={shimmerPlaceholder}
@@ -124,18 +124,18 @@ export function ClothCard({ item, onToggle, onEdit, onDelete, onSelect, selected
                             {item.tags?.sub_category || item.tags?.category || 'Item'}
                         </p>
                         {!isAccessory && (
-                          <p className="text-[13px] text-white/60 flex items-center gap-1.5 mt-0.5">
-                              <span
-                                  className="w-2 h-2 rounded-full"
-                                  style={{
-                                      backgroundColor: clean ? '#FFFFFF' : 'rgba(255,255,255,0.15)',
-                                      boxShadow: clean
-                                          ? '0 0 6px rgba(255, 255, 255, 0.5)'
-                                          : 'none'
-                                  }}
-                              />
-                              {clean ? "Clean" : "Needs Wash"}
-                          </p>
+                            <p className="text-[13px] text-white/60 flex items-center gap-1.5 mt-0.5">
+                                <span
+                                    className="w-2 h-2 rounded-full"
+                                    style={{
+                                        backgroundColor: clean ? '#FFFFFF' : 'rgba(255,255,255,0.15)',
+                                        boxShadow: clean
+                                            ? '0 0 6px rgba(255, 255, 255, 0.5)'
+                                            : 'none'
+                                    }}
+                                />
+                                {clean ? "Clean" : "Needs Wash"}
+                            </p>
                         )}
                     </div>
                     <button

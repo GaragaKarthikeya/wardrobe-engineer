@@ -78,16 +78,16 @@ export default function Home() {
         try {
           // Compress image to JPEG with max 800KB target
           const compressedBlob = await convertToJpeg(file, 0.8);
-          
+
           // If still too large, compress more aggressively
           let finalBlob = compressedBlob;
           if (compressedBlob.size > 800 * 1024) {
             finalBlob = await convertToJpeg(file, 0.6);
           }
-          
+
           // Create new file from compressed blob
           const compressedFile = new File([finalBlob], file.name, { type: 'image/jpeg' });
-          
+
           const formData = new FormData();
           formData.append("file", compressedFile);
 
@@ -205,13 +205,13 @@ export default function Home() {
             >
               {/* Result Area */}
               {result ? (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   className="flex-1 space-y-5 pb-6"
                 >
                   {/* User Query Bubble */}
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.3 }}
@@ -225,7 +225,7 @@ export default function Home() {
                   {/* Outfit Showcase */}
                   {result.items.length > 0 && (
                     <div className="space-y-4">
-                      <motion.div 
+                      <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2 }}
@@ -243,8 +243,8 @@ export default function Home() {
                             key={item.id}
                             initial={{ opacity: 0, y: 20, scale: 0.9 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
-                            transition={{ 
-                              delay: 0.3 + i * 0.1, 
+                            transition={{
+                              delay: 0.3 + i * 0.1,
                               duration: 0.5,
                               ease: [0.25, 0.1, 0.25, 1]
                             }}
@@ -290,24 +290,24 @@ export default function Home() {
                       <button
                         onClick={async () => {
                           triggerHaptic();
-                          
+
                           // Mark all non-accessory items as dirty
                           const itemsToMark = result.items.filter(item => item.tags?.category !== 'Accessory');
                           for (const item of itemsToMark) {
                             await updateItem(item.id, { is_clean: false });
                           }
-                          
+
                           // Clear state and navigate
                           setResult(null);
                           setPrompt("");
                           setRefreshTrigger(p => p + 1);
-                          
+
                           // Switch to closet with slight delay for animation
                           setTimeout(() => {
                             setView("closet");
                             triggerHaptic();
                           }, 100);
-                          
+
                           const count = itemsToMark.length;
                           toast(count === 1 ? "1 item marked as worn" : `${count} items marked as worn`, "success");
                         }}
@@ -338,13 +338,13 @@ export default function Home() {
                 // Empty/Loading State
                 <div className="flex-1 flex flex-col items-center justify-center px-6 relative min-h-[500px]">
                   {/* Ambient Glow - Subtle and Elegant */}
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0 }}
-                    animate={{ 
+                    animate={{
                       opacity: thinking ? [0.15, 0.25, 0.15] : 0.1,
                       scale: thinking ? [1, 1.1, 1] : 1
                     }}
-                    transition={{ 
+                    transition={{
                       duration: 2.5,
                       repeat: thinking ? Infinity : 0,
                       ease: "easeInOut"
@@ -355,17 +355,17 @@ export default function Home() {
                   {/* Center Content */}
                   <div className="relative z-10 flex flex-col items-center">
                     {/* Icon */}
-                    <motion.div 
+                    <motion.div
                       initial={{ scale: 0.5, opacity: 0 }}
-                      animate={{ 
-                        scale: 1, 
+                      animate={{
+                        scale: 1,
                         opacity: 1,
                         y: thinking ? [0, -4, 0] : [0, -6, 0]
                       }}
-                      transition={{ 
+                      transition={{
                         scale: { duration: 0.6, ease: [0.25, 0.1, 0.25, 1] },
                         opacity: { duration: 0.6 },
-                        y: { 
+                        y: {
                           duration: thinking ? 2 : 3.5,
                           repeat: Infinity,
                           ease: "easeInOut"
@@ -400,7 +400,7 @@ export default function Home() {
                     </motion.div>
 
                     {/* Title */}
-                    <motion.h2 
+                    <motion.h2
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.15, duration: 0.5 }}
@@ -408,16 +408,16 @@ export default function Home() {
                     >
                       {thinking ? "Thinking" : "Stylist"}
                     </motion.h2>
-                    
+
                     {/* Description */}
-                    <motion.p 
+                    <motion.p
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: 0.25, duration: 0.5 }}
                       className="text-[17px] text-white/45 max-w-[300px] text-center leading-relaxed font-normal"
                     >
-                      {thinking 
-                        ? "Finding the perfect pieces" 
+                      {thinking
+                        ? "Finding the perfect pieces"
                         : "I'll pick the perfect outfit"}
                     </motion.p>
                   </div>
@@ -426,7 +426,7 @@ export default function Home() {
 
               {/* Suggestion Chips */}
               {!result && !thinking && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
