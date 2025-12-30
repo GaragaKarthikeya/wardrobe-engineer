@@ -1,9 +1,10 @@
 "use client";
 
 import { ClothingItem } from "@/types";
-import { Check, Pencil, Trash2, CheckCircle } from "lucide-react";
+import { Check, Pencil, Trash2, CheckCircle, X } from "lucide-react";
 import Image from "next/image";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { triggerHaptic } from "@/lib/haptics";
 
 interface Props {
@@ -20,19 +21,24 @@ export function ClothCard({ item, onToggle, onEdit, onDelete, onSelect, selected
     const clean = item.is_clean;
     const [showMenu, setShowMenu] = useState(false);
     const [isPressed, setIsPressed] = useState(false);
+    const [mounted, setMounted] = useState(false);
     const longPressTimer = useRef<NodeJS.Timeout | null>(null);
     const didLongPress = useRef(false);
+
+    // For portal rendering
+    useEffect(() => {
+        setMounted(true);
+        return () => setMounted(false);
+    }, []);
 
     const handleTouchStart = () => {
         didLongPress.current = false;
         setIsPressed(true);
-
-        // Fire haptic IMMEDIATELY on touch
-        triggerHaptic('light');
+        triggerHaptic();
 
         longPressTimer.current = setTimeout(() => {
             didLongPress.current = true;
-            triggerHaptic('heavy');
+            triggerHaptic();
             setShowMenu(true);
             setIsPressed(false);
         }, 500);
@@ -51,7 +57,7 @@ export function ClothCard({ item, onToggle, onEdit, onDelete, onSelect, selected
             return;
         }
 
-        triggerHaptic('light');
+        triggerHaptic();
 
         if (selectMode) {
             onSelect(item.id);
@@ -60,13 +66,108 @@ export function ClothCard({ item, onToggle, onEdit, onDelete, onSelect, selected
         }
     };
 
+    const closeMenu = () => {
+        triggerHaptic();
+        setShowMenu(false);
+    };
+
     const handleAction = (action: 'edit' | 'delete' | 'select') => {
-        triggerHaptic('medium');
+        triggerHaptic();
         setShowMenu(false);
         if (action === 'edit') onEdit(item.id);
         if (action === 'delete') onDelete(item.id);
         if (action === 'select') onSelect(item.id);
     };
+
+    // Context Menu Portal
+    const contextMenu = showMenu && mounted ? createPortal(
+        <div
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md"
+            onClick={closeMenu}
+            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+        >
+            <div
+                className="w-[280px] rounded-2xl overflow-hidden bg-[#2C2C2E] shadow-2xl animate-scale-in"
+                onClick={e => e.stopPropagation()}
+                style={{
+                    animation: 'scaleIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+                }}
+            >
+                {/* Header with Close Button */}
+                <div className="px-4 py-4 border-b border-white/10 flex items-center gap-3">
+                    <div className="w-14 h-14 rounded-xl relative overflow-hidden bg-[#3A3A3C] flex-shrink-0">
+                        <Image src={item.image_url} alt="" fill className="object-cover" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-[15px] font-semibold text-white truncate">
+                            {item.tags?.sub_category || item.tags?.category || 'Item'}
+                        </p>
+                        <p className="text-[13px] text-white/60 flex items-center gap-1.5 mt-0.5">
+                            <span
+                                className="w-2 h-2 rounded-full"
+                                style={{
+                                    backgroundColor: clean ? '#30D158' : '#FF453A',
+                                    boxShadow: clean
+                                        ? '0 0 6px rgba(48, 209, 88, 0.5)'
+                                        : '0 0 6px rgba(255, 69, 58, 0.5)'
+                                }}
+                            />
+                            {clean ? "Clean" : "Needs Wash"}
+                        </p>
+                    </div>
+                    <button
+                        onClick={closeMenu}
+                        className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center active:bg-white/20"
+                    >
+                        <X size={16} className="text-white/70" />
+                    </button>
+                </div>
+
+                {/* Actions */}
+                <div>
+                    <button
+                        onClick={() => handleAction('edit')}
+                        className="w-full flex items-center justify-between px-4 py-4 active:bg-white/5 transition-colors"
+                    >
+                        <span className="text-[17px] text-white">View Details</span>
+                        <Pencil size={20} className="text-white/50" />
+                    </button>
+
+                    <div className="h-px bg-white/10 mx-4" />
+
+                    <button
+                        onClick={() => handleAction('select')}
+                        className="w-full flex items-center justify-between px-4 py-4 active:bg-white/5 transition-colors"
+                    >
+                        <span className="text-[17px] text-white">Select Item</span>
+                        <CheckCircle size={20} className="text-white/50" />
+                    </button>
+
+                    <div className="h-px bg-white/10 mx-4" />
+
+                    <button
+                        onClick={() => handleAction('delete')}
+                        className="w-full flex items-center justify-between px-4 py-4 active:bg-red/10 transition-colors"
+                    >
+                        <span className="text-[17px] text-[#FF453A]">Delete Item</span>
+                        <Trash2 size={20} className="text-[#FF453A]" />
+                    </button>
+                </div>
+
+                {/* Cancel Button */}
+                <div className="p-3 pt-0">
+                    <button
+                        onClick={closeMenu}
+                        className="w-full py-3.5 rounded-xl bg-white/10 text-[17px] font-semibold text-white active:bg-white/15 transition-colors"
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>,
+        document.body
+    ) : null;
 
     return (
         <>
@@ -83,7 +184,7 @@ export function ClothCard({ item, onToggle, onEdit, onDelete, onSelect, selected
                     bg-secondary-background
                     transition-all duration-200 ease-out
                     ${isPressed ? 'scale-[0.97] opacity-90' : 'scale-100 opacity-100'}
-                    ${selected ? 'ring-[2.5px] ring-tint ring-offset-2 ring-offset-black shadow-glow-tint' : ''}
+                    ${selected ? 'ring-[2.5px] ring-tint ring-offset-2 ring-offset-black' : ''}
                     ${!clean ? 'opacity-50' : ''}
                 `}
                 style={{
@@ -100,96 +201,38 @@ export function ClothCard({ item, onToggle, onEdit, onDelete, onSelect, selected
 
                 {/* Selection Overlay */}
                 {selectMode && (
-                    <div className="absolute inset-0 bg-black/30 flex items-start justify-end p-2.5 transition-opacity duration-200">
+                    <div className="absolute inset-0 bg-black/30 flex items-start justify-end p-2.5">
                         <div
                             className={`
                                 w-6 h-6 rounded-full flex items-center justify-center 
                                 transition-all duration-300 ease-out
                                 ${selected
-                                    ? 'bg-tint border-0 scale-100 shadow-glow-tint'
+                                    ? 'bg-tint scale-100'
                                     : 'bg-black/40 border-2 border-white/70 scale-90'
                                 }
                             `}
-                            style={{
-                                transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
-                            }}
                         >
                             {selected && <Check size={14} className="text-white" strokeWidth={3} />}
                         </div>
                     </div>
                 )}
 
-                {/* Status Indicator - Premium */}
+                {/* Status Indicator */}
                 {!selectMode && (
                     <div
-                        className={`
-                            absolute top-2 right-2 
-                            w-2.5 h-2.5 rounded-full
-                            transition-all duration-300
-                            ${clean
-                                ? 'bg-green shadow-[0_0_8px_2px_rgba(48,209,88,0.5)]'
-                                : 'bg-red shadow-[0_0_8px_2px_rgba(255,69,58,0.5)]'
-                            }
-                        `}
+                        className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full"
+                        style={{
+                            backgroundColor: clean ? '#30D158' : '#FF453A',
+                            boxShadow: clean
+                                ? '0 0 8px 2px rgba(48, 209, 88, 0.5)'
+                                : '0 0 8px 2px rgba(255, 69, 58, 0.5)'
+                        }}
                     />
                 )}
             </div>
 
-            {/* iOS Context Menu - Premium */}
-            {showMenu && (
-                <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-md animate-fade-in"
-                    onClick={() => setShowMenu(false)}
-                >
-                    <div
-                        className="w-[260px] rounded-2xl overflow-hidden bg-secondary-background/95 backdrop-blur-2xl shadow-premium-lg animate-scale-in border border-white/[0.08]"
-                        onClick={e => e.stopPropagation()}
-                    >
-                        {/* Preview Header */}
-                        <div className="px-4 py-4 border-b border-separator/50 flex items-center gap-4">
-                            <div className="w-14 h-14 rounded-xl relative overflow-hidden bg-tertiary-background shadow-sm">
-                                <Image src={item.image_url} alt="" fill className="object-cover" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-subheadline font-semibold text-label-primary truncate">
-                                    {item.tags?.sub_category || item.tags?.category || 'Item'}
-                                </p>
-                                <p className="text-caption-1 text-label-secondary flex items-center gap-1.5 mt-0.5">
-                                    <span className={`w-1.5 h-1.5 rounded-full ${clean ? 'bg-green' : 'bg-red'}`} />
-                                    {clean ? "Clean" : "Needs Washing"}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="py-1">
-                            <button
-                                onClick={() => handleAction('edit')}
-                                className="w-full flex items-center justify-between px-4 py-3.5 active:bg-fill-tertiary transition-all group"
-                            >
-                                <span className="text-body text-label-primary group-active:opacity-70">View Details</span>
-                                <Pencil size={18} className="text-label-secondary group-active:opacity-70" />
-                            </button>
-
-                            <button
-                                onClick={() => handleAction('select')}
-                                className="w-full flex items-center justify-between px-4 py-3.5 active:bg-fill-tertiary transition-all group border-t border-separator/30"
-                            >
-                                <span className="text-body text-label-primary group-active:opacity-70">Select Item</span>
-                                <CheckCircle size={18} className="text-label-secondary group-active:opacity-70" />
-                            </button>
-
-                            <button
-                                onClick={() => handleAction('delete')}
-                                className="w-full flex items-center justify-between px-4 py-3.5 active:bg-red-light transition-all group border-t border-separator/30"
-                            >
-                                <span className="text-body text-red group-active:opacity-70">Delete Item</span>
-                                <Trash2 size={18} className="text-red group-active:opacity-70" />
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Portal for context menu */}
+            {contextMenu}
         </>
     );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from "react";
+import { createPortal } from "react-dom";
 
 type ToastType = "success" | "error" | "info";
 
@@ -15,6 +16,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     const [message, setMessage] = useState("");
     const [type, setType] = useState<ToastType>("info");
     const [isExiting, setIsExiting] = useState(false);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const toast = useCallback((msg: string, t: ToastType = "info") => {
         setMessage(msg);
@@ -33,119 +39,123 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         }
     }, [show, isExiting]);
 
-    const iconColor = type === "success" ? "text-green" : type === "error" ? "text-red" : "text-label-secondary";
-    const bgGlow = type === "success" ? "shadow-[0_0_20px_rgba(48,209,88,0.15)]" :
-        type === "error" ? "shadow-[0_0_20px_rgba(255,69,58,0.15)]" : "";
+    const iconColor = type === "success" ? "#30D158" : type === "error" ? "#FF453A" : "#8E8E93";
+
+    const toastContent = show && mounted ? createPortal(
+        <div
+            style={{
+                position: 'fixed',
+                top: 12,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                zIndex: 10000,
+                animation: isExiting
+                    ? 'toastOut 0.2s ease-out forwards'
+                    : 'toastIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+            }}
+        >
+            <div
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    padding: '14px 20px',
+                    borderRadius: 50,
+                    background: 'rgba(44, 44, 46, 0.95)',
+                    backdropFilter: 'blur(40px)',
+                    WebkitBackdropFilter: 'blur(40px)',
+                    boxShadow: type === "success"
+                        ? '0 8px 32px rgba(0,0,0,0.3), 0 0 20px rgba(48, 209, 88, 0.15)'
+                        : type === "error"
+                            ? '0 8px 32px rgba(0,0,0,0.3), 0 0 20px rgba(255, 69, 58, 0.15)'
+                            : '0 8px 32px rgba(0,0,0,0.3)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    minWidth: 160,
+                }}
+            >
+                {/* Icon */}
+                {type === "success" && (
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <circle cx="10" cy="10" r="10" fill={iconColor} fillOpacity="0.15" />
+                        <circle cx="10" cy="10" r="9" stroke={iconColor} strokeWidth="1.5" fill="none" />
+                        <path
+                            d="M6 10.5L8.5 13L14 7"
+                            stroke={iconColor}
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        />
+                    </svg>
+                )}
+
+                {type === "error" && (
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <circle cx="10" cy="10" r="10" fill={iconColor} fillOpacity="0.15" />
+                        <circle cx="10" cy="10" r="9" stroke={iconColor} strokeWidth="1.5" fill="none" />
+                        <path d="M10 6V11" stroke={iconColor} strokeWidth="2" strokeLinecap="round" />
+                        <circle cx="10" cy="14" r="1" fill={iconColor} />
+                    </svg>
+                )}
+
+                {type === "info" && (
+                    <div style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: '50%',
+                        background: 'rgba(142, 142, 147, 0.3)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                    }}>
+                        <div style={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: '50%',
+                            background: '#8E8E93',
+                        }} />
+                    </div>
+                )}
+
+                <span style={{
+                    fontSize: 15,
+                    fontWeight: 600,
+                    color: '#FFFFFF',
+                    letterSpacing: '-0.01em',
+                }}>
+                    {message}
+                </span>
+            </div>
+
+            <style>{`
+                @keyframes toastIn {
+                    from {
+                        opacity: 0;
+                        transform: translateY(-20px) scale(0.9);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0) scale(1);
+                    }
+                }
+                @keyframes toastOut {
+                    from {
+                        opacity: 1;
+                        transform: translateY(0) scale(1);
+                    }
+                    to {
+                        opacity: 0;
+                        transform: translateY(-10px) scale(0.95);
+                    }
+                }
+            `}</style>
+        </div>,
+        document.body
+    ) : null;
 
     return (
         <ToastContext.Provider value={{ toast }}>
             {children}
-            {show && (
-                <div
-                    className={`
-                        fixed top-3 left-1/2 -translate-x-1/2 z-[100]
-                        ${isExiting ? 'animate-[fadeOut_0.2s_ease-out_forwards]' : 'animate-bounce-in'}
-                    `}
-                >
-                    <div className={`
-                        flex items-center gap-3 px-5 py-3.5 
-                        rounded-full bg-secondary-background/95 
-                        backdrop-blur-2xl shadow-premium-lg 
-                        border border-white/[0.08]
-                        min-w-[180px] max-w-[85vw] justify-center
-                        ${bgGlow}
-                    `}>
-                        {/* Animated Icons */}
-                        {type === "success" && (
-                            <div className="relative w-5 h-5 flex items-center justify-center">
-                                <svg
-                                    width="20"
-                                    height="20"
-                                    viewBox="0 0 20 20"
-                                    fill="none"
-                                    className={iconColor}
-                                >
-                                    <circle
-                                        cx="10"
-                                        cy="10"
-                                        r="9"
-                                        fill="currentColor"
-                                        className="opacity-20"
-                                    />
-                                    <circle
-                                        cx="10"
-                                        cy="10"
-                                        r="9"
-                                        stroke="currentColor"
-                                        strokeWidth="1.5"
-                                        fill="none"
-                                    />
-                                    <path
-                                        d="M6 10.5L8.5 13L14 7"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        className="check-animated"
-                                    />
-                                </svg>
-                            </div>
-                        )}
-
-                        {type === "error" && (
-                            <div className="relative w-5 h-5 flex items-center justify-center">
-                                <svg
-                                    width="20"
-                                    height="20"
-                                    viewBox="0 0 20 20"
-                                    fill="none"
-                                    className={iconColor}
-                                >
-                                    <circle
-                                        cx="10"
-                                        cy="10"
-                                        r="9"
-                                        fill="currentColor"
-                                        className="opacity-20"
-                                    />
-                                    <circle
-                                        cx="10"
-                                        cy="10"
-                                        r="9"
-                                        stroke="currentColor"
-                                        strokeWidth="1.5"
-                                        fill="none"
-                                    />
-                                    <path
-                                        d="M10 6V11M10 14V14.01"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                    />
-                                </svg>
-                            </div>
-                        )}
-
-                        {type === "info" && (
-                            <div className="w-5 h-5 rounded-full bg-fill-secondary flex items-center justify-center">
-                                <div className="w-1.5 h-1.5 rounded-full bg-label-secondary" />
-                            </div>
-                        )}
-
-                        <span className="text-[15px] font-semibold text-label-primary tracking-tight">
-                            {message}
-                        </span>
-                    </div>
-                </div>
-            )}
-
-            {/* Fade out keyframe - injected once */}
-            <style jsx global>{`
-                @keyframes fadeOut {
-                    from { opacity: 1; transform: translateX(-50%) translateY(0); }
-                    to { opacity: 0; transform: translateX(-50%) translateY(-10px); }
-                }
-            `}</style>
+            {toastContent}
         </ToastContext.Provider>
     );
 }

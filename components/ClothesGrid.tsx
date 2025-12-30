@@ -40,16 +40,16 @@ export function ClothesGrid() {
     useEffect(() => { fetch(); }, [fetch]);
 
     const toggle = async (id: string, clean: boolean) => {
-        triggerHaptic('light');
+        triggerHaptic();
         setItems(p => p.map(i => i.id === id ? { ...i, is_clean: !clean } : i));
         await supabase.from("items").update({ is_clean: !clean }).eq("id", id);
     };
 
     const toggleSelect = (id: string) => {
-        triggerHaptic('selection');
+        triggerHaptic();
         if (!selectMode) {
             setSelectMode(true);
-            triggerHaptic('medium');
+            triggerHaptic();
         }
         setSelected(p => {
             const n = new Set(p);
@@ -59,7 +59,7 @@ export function ClothesGrid() {
     };
 
     const deleteOne = async (id: string) => {
-        triggerHaptic('heavy');
+        triggerHaptic();
         const item = items.find(i => i.id === id);
         if (!item) return;
 
@@ -71,7 +71,7 @@ export function ClothesGrid() {
     };
 
     const deleteSelected = async () => {
-        triggerHaptic('heavy');
+        triggerHaptic();
         const toDelete = items.filter(i => selected.has(i.id));
         setItems(p => p.filter(i => !selected.has(i.id)));
 
@@ -86,7 +86,7 @@ export function ClothesGrid() {
     };
 
     const exitSelectMode = () => {
-        triggerHaptic('light');
+        triggerHaptic();
         setSelectMode(false);
         setSelected(new Set());
     };
@@ -140,7 +140,7 @@ export function ClothesGrid() {
             {!selectMode && (
                 <div className="flex items-center justify-between mb-5">
                     <button
-                        onClick={() => { setShowFilters(true); triggerHaptic('light') }}
+                        onClick={() => { setShowFilters(true); triggerHaptic() }}
                         className={`
                             flex items-center gap-2 px-4 py-2 rounded-full ios-btn
                             transition-all border
@@ -157,7 +157,7 @@ export function ClothesGrid() {
                     </button>
 
                     <button
-                        onClick={() => { setSelectMode(true); triggerHaptic('light') }}
+                        onClick={() => { setSelectMode(true); triggerHaptic() }}
                         className="text-[15px] font-semibold text-tint px-3 py-2 ios-btn"
                     >
                         Select

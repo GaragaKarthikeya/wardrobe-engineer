@@ -23,16 +23,16 @@ export function ItemDetailModal({ item, onClose, onUpdate }: Props) {
     const [tags, setTags] = useState<ClothingTags>(item.tags);
 
     const save = async () => {
-        triggerHaptic('medium');
+        triggerHaptic();
         setSaving(true);
         try {
             await updateItemTagsAction(item.id, tags);
             onUpdate(item.id, tags);
-            triggerHaptic('success');
+            triggerHaptic();
             toast("Saved", "success");
             onClose();
         } catch (e) {
-            triggerHaptic('error');
+            triggerHaptic();
             const msg = e instanceof Error ? e.message : "Failed to save";
             toast(msg, "error");
         } finally {
@@ -41,7 +41,7 @@ export function ItemDetailModal({ item, onClose, onUpdate }: Props) {
     };
 
     const set = (k: keyof ClothingTags, v: string) => {
-        triggerHaptic('selection');
+        triggerHaptic();
         setTags(p => ({ ...p, [k]: v }));
     };
 

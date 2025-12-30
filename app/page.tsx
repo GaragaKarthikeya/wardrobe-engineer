@@ -59,7 +59,7 @@ export default function Home() {
   }, []);
 
   const upload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    triggerHaptic('medium');
+    triggerHaptic();
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
 
@@ -83,10 +83,10 @@ export default function Home() {
 
         await supabase.from("items").insert({ image_url: url, tags, is_clean: true });
         ok++;
-        triggerHaptic('success');
+        triggerHaptic();
       } catch (err) {
         console.error(err);
-        triggerHaptic('error');
+        triggerHaptic();
       }
     }
 
@@ -99,7 +99,7 @@ export default function Home() {
   const ask = async (overridePrompt?: string) => {
     const p = overridePrompt || prompt;
     if (!p.trim()) return;
-    triggerHaptic('medium');
+    triggerHaptic();
 
     setThinking(true);
     setResult(null);
@@ -124,15 +124,15 @@ export default function Home() {
       if (res.selected_item_ids?.length) {
         const { data } = await supabase.from("items").select("*").in("id", res.selected_item_ids);
         setResult({ items: data || [], reason: res.reasoning });
-        triggerHaptic('success');
+        triggerHaptic();
       } else {
         setResult({ items: [], reason: res.reasoning });
-        triggerHaptic('light');
+        triggerHaptic();
       }
     } catch (err) {
       clearInterval(interval);
       toast("Something went wrong", "error");
-      triggerHaptic('error');
+      triggerHaptic();
     } finally {
       setThinking(false);
     }
@@ -140,7 +140,7 @@ export default function Home() {
 
   const switchView = (newView: View) => {
     if (view !== newView) {
-      triggerHaptic('light');
+      triggerHaptic();
       setView(newView);
     }
   };
@@ -156,7 +156,7 @@ export default function Home() {
 
           {view === "closet" && (
             <button
-              onClick={() => { fileRef.current?.click(); triggerHaptic('light'); }}
+              onClick={() => { fileRef.current?.click(); triggerHaptic(); }}
               disabled={uploading}
               className="ios-btn flex items-center gap-1.5 text-tint font-semibold text-[17px] px-1"
             >
@@ -227,7 +227,7 @@ export default function Home() {
                   {SUGGESTIONS.map((s, i) => (
                     <button
                       key={s}
-                      onClick={() => { triggerHaptic('light'); setPrompt(s); ask(s); }}
+                      onClick={() => { triggerHaptic(); setPrompt(s); ask(s); }}
                       className="px-4 py-2.5 rounded-full bg-secondary-background border border-separator/50 ios-btn text-subheadline text-label-primary font-medium animate-scale-in"
                       style={{ animationDelay: `${i * 60}ms` }}
                     >
@@ -286,7 +286,7 @@ export default function Home() {
                       onClick={() => {
                         setResult(null);
                         setPrompt("");
-                        triggerHaptic('medium');
+                        triggerHaptic();
                       }}
                       className="h-12 px-6 rounded-full bg-secondary-background border border-separator/50 ios-btn flex items-center gap-2.5"
                     >

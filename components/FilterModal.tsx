@@ -29,7 +29,7 @@ export function FilterModal({ isOpen, onClose, filters, setFilters }: Props) {
     if (!isOpen) return null;
 
     const update = (key: keyof FilterState, value: string | 'all' | 'clean' | 'dirty' | 'newest' | 'oldest') => {
-        triggerHaptic('selection');
+        triggerHaptic();
         setFilters({ ...filters, [key]: value });
     };
 
@@ -54,7 +54,7 @@ export function FilterModal({ isOpen, onClose, filters, setFilters }: Props) {
                 <div className="flex items-center justify-between px-5 pb-4">
                     <span className="text-title-3 font-bold text-label-primary">Filters</span>
                     <button
-                        onClick={() => { triggerHaptic('light'); onClose(); }}
+                        onClick={() => { triggerHaptic(); onClose(); }}
                         className="w-8 h-8 rounded-full bg-fill-tertiary flex items-center justify-center text-label-secondary ios-btn"
                     >
                         <X size={16} strokeWidth={2.5} />
