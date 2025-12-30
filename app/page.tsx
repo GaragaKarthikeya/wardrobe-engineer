@@ -233,8 +233,8 @@ export default function Home() {
             {/* Empty State */}
             {!result && !thinking ? (
               <div className="flex-1 flex flex-col items-center justify-center text-center px-4 animate-fade-in">
-                <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-tint-light shadow-glow-tint">
-                  <Sparkles size={36} className="text-tint" />
+                <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 border border-white/20">
+                  <Sparkles size={36} className="text-white" />
                 </div>
                 <p className="text-title-2 mb-2 text-label-primary font-bold">
                   Personal Stylist
@@ -249,7 +249,7 @@ export default function Home() {
                     <button
                       key={s}
                       onClick={() => { triggerHaptic(); setPrompt(s); ask(s); }}
-                      className="px-4 py-2.5 rounded-full bg-secondary-background border border-separator/50 ios-btn text-subheadline text-label-primary font-medium animate-scale-in"
+                      className="px-4 py-2.5 rounded-full border border-white/15 ios-btn text-subheadline text-label-primary font-medium animate-scale-in"
                       style={{ animationDelay: `${i * 60}ms` }}
                     >
                       {s}
@@ -319,13 +319,13 @@ export default function Home() {
               </div>
             )}
 
-            {/* Compose Bar - Premium */}
+            {/* Compose Bar - Pure Black */}
             <div className="mt-auto pt-4">
               <div
                 className={`
-                  flex gap-3 p-1.5 pl-5 rounded-full bg-secondary-background items-center 
-                  border transition-all duration-300 shadow-premium-lg
-                  ${isInputFocused ? 'border-tint/50 shadow-glow-tint' : 'border-separator/50'}
+                  flex gap-3 p-1.5 pl-5 rounded-full items-center 
+                  border transition-all duration-300
+                  ${isInputFocused ? 'border-white/30' : 'border-white/10'}
                 `}
               >
                 <input
@@ -344,7 +344,7 @@ export default function Home() {
                   className={`
                     w-9 h-9 rounded-full flex items-center justify-center 
                     transition-all duration-200 ease-out
-                    ${prompt.trim() ? 'bg-tint scale-100 opacity-100' : 'bg-fill-tertiary scale-90 opacity-50'}
+                    ${prompt.trim() ? 'bg-white scale-100 opacity-100' : 'border border-white/10 scale-90 opacity-50'}
                   `}
                   style={{ transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }}
                 >

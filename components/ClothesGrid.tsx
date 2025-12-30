@@ -175,8 +175,8 @@ export function ClothesGrid() {
                                 flex items-center gap-2 px-4 py-2 rounded-full ios-btn
                                 transition-all border
                                 ${hasActiveFilters
-                                    ? 'bg-tint-light border-tint/30 text-tint'
-                                    : 'bg-secondary-background border-separator/50 text-label-secondary'
+                                    ? 'border-white/30 text-white'
+                                    : 'border-white/10 text-label-secondary'
                                 }
                             `}
                         >
@@ -190,7 +190,7 @@ export function ClothesGrid() {
                         <button
                             onClick={handleRefresh}
                             disabled={syncing}
-                            className="w-9 h-9 rounded-full bg-secondary-background border border-separator/50 flex items-center justify-center ios-btn"
+                            className="w-9 h-9 rounded-full border border-white/10 flex items-center justify-center ios-btn"
                         >
                             <RefreshCw
                                 size={16}
