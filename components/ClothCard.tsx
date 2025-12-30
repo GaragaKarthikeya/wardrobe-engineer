@@ -81,7 +81,7 @@ export function ClothCard({ item, onToggle, onEdit, onDelete, onSelect, selected
                     src={item.image_url}
                     alt=""
                     fill
-                    className={`object-cover transition-all ${clean ? '' : 'grayscale contrast-125'}`}
+                    className={`object-cover transition-all pointer-events-none select-none ${clean ? '' : 'grayscale contrast-125'}`}
                     sizes="50vw"
                 />
 
