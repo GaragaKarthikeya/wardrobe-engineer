@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { ClothesGrid } from "@/components/ClothesGrid";
 import { ArrowUp, Sparkles, Plus, LayoutGrid, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
@@ -9,7 +9,7 @@ import { ClothingItem } from "@/types";
 import Image from "next/image";
 import { useToast } from "@/components/Toast";
 import { convertToJpeg, SUPPORTED_FORMATS } from "@/lib/image";
-import { triggerHaptic } from "@/lib/haptics";
+import { triggerHaptic, prepareHaptics } from "@/lib/haptics";
 
 type View = "closet" | "stylist";
 
@@ -39,6 +39,24 @@ export default function Home() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
+
+  // Prepare haptics for iOS on first user interaction
+  useEffect(() => {
+    const handleFirstInteraction = () => {
+      prepareHaptics();
+      // Remove listeners after first interaction
+      window.removeEventListener('touchstart', handleFirstInteraction);
+      window.removeEventListener('click', handleFirstInteraction);
+    };
+
+    window.addEventListener('touchstart', handleFirstInteraction, { passive: true });
+    window.addEventListener('click', handleFirstInteraction, { passive: true });
+
+    return () => {
+      window.removeEventListener('touchstart', handleFirstInteraction);
+      window.removeEventListener('click', handleFirstInteraction);
+    };
+  }, []);
 
   const upload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     triggerHaptic('medium');
