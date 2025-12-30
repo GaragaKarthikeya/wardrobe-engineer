@@ -111,7 +111,7 @@ export function ItemDetailModal({ item, onClose, onUpdate }: Props) {
                     </div>
 
                     <div className="space-y-5 px-5">
-                        
+
                         {/* Sub-category & Color Row */}
                         <div className="ios-card overflow-hidden">
                             <div className="flex items-center justify-between p-4 border-b border-separator/30">
@@ -192,11 +192,10 @@ export function ItemDetailModal({ item, onClose, onUpdate }: Props) {
                                     <button
                                         key={p}
                                         onClick={() => set("pattern", p)}
-                                        className={`px-3 py-1.5 rounded-full text-[13px] font-medium transition-all ${
-                                            tags.pattern === p 
-                                                ? 'bg-white text-black' 
+                                        className={`px-3 py-1.5 rounded-full text-[13px] font-medium transition-all ${tags.pattern === p
+                                                ? 'bg-white text-black'
                                                 : 'bg-white/10 text-white/70'
-                                        }`}
+                                            }`}
                                     >
                                         {p}
                                     </button>
@@ -214,11 +213,10 @@ export function ItemDetailModal({ item, onClose, onUpdate }: Props) {
                                     <button
                                         key={f}
                                         onClick={() => set("fit", f)}
-                                        className={`px-3 py-1.5 rounded-full text-[13px] font-medium transition-all ${
-                                            tags.fit === f 
-                                                ? 'bg-white text-black' 
+                                        className={`px-3 py-1.5 rounded-full text-[13px] font-medium transition-all ${tags.fit === f
+                                                ? 'bg-white text-black'
                                                 : 'bg-white/10 text-white/70'
-                                        }`}
+                                            }`}
                                     >
                                         {f}
                                     </button>
@@ -236,11 +234,10 @@ export function ItemDetailModal({ item, onClose, onUpdate }: Props) {
                                     <button
                                         key={s}
                                         onClick={() => toggleArrayItem("seasons", s)}
-                                        className={`px-3 py-1.5 rounded-full text-[13px] font-medium transition-all ${
-                                            isInArray("seasons", s)
-                                                ? 'bg-white text-black' 
+                                        className={`px-3 py-1.5 rounded-full text-[13px] font-medium transition-all ${isInArray("seasons", s)
+                                                ? 'bg-white text-black'
                                                 : 'bg-white/10 text-white/70'
-                                        }`}
+                                            }`}
                                     >
                                         {s}
                                     </button>
@@ -258,11 +255,10 @@ export function ItemDetailModal({ item, onClose, onUpdate }: Props) {
                                     <button
                                         key={o}
                                         onClick={() => toggleArrayItem("occasions", o)}
-                                        className={`px-3 py-1.5 rounded-full text-[13px] font-medium transition-all ${
-                                            isInArray("occasions", o)
-                                                ? 'bg-white text-black' 
+                                        className={`px-3 py-1.5 rounded-full text-[13px] font-medium transition-all ${isInArray("occasions", o)
+                                                ? 'bg-white text-black'
                                                 : 'bg-white/10 text-white/70'
-                                        }`}
+                                            }`}
                                     >
                                         {o}
                                     </button>
@@ -282,7 +278,7 @@ export function ItemDetailModal({ item, onClose, onUpdate }: Props) {
                         {/* Advanced Section */}
                         {showAdvanced && (
                             <div className="space-y-5 animate-fade-in">
-                                
+
                                 {/* Style Tags - Multi-select */}
                                 <div className="space-y-2">
                                     <span className="text-[11px] uppercase text-label-tertiary font-semibold tracking-wider px-1">
@@ -293,11 +289,10 @@ export function ItemDetailModal({ item, onClose, onUpdate }: Props) {
                                             <button
                                                 key={st}
                                                 onClick={() => toggleArrayItem("style_tags", st)}
-                                                className={`px-3 py-1.5 rounded-full text-[13px] font-medium transition-all ${
-                                                    isInArray("style_tags", st)
-                                                        ? 'bg-white text-black' 
+                                                className={`px-3 py-1.5 rounded-full text-[13px] font-medium transition-all ${isInArray("style_tags", st)
+                                                        ? 'bg-white text-black'
                                                         : 'bg-white/10 text-white/70'
-                                                }`}
+                                                    }`}
                                             >
                                                 {st}
                                             </button>
@@ -362,11 +357,10 @@ export function ItemDetailModal({ item, onClose, onUpdate }: Props) {
                                                 <button
                                                     key={n}
                                                     onClick={() => set("versatility_score", n)}
-                                                    className={`w-7 h-7 rounded-full text-[12px] font-semibold transition-all ${
-                                                        tags.versatility_score === n 
-                                                            ? 'bg-white text-black' 
+                                                    className={`w-7 h-7 rounded-full text-[12px] font-semibold transition-all ${tags.versatility_score === n
+                                                            ? 'bg-white text-black'
                                                             : 'bg-white/10 text-white/50'
-                                                    }`}
+                                                        }`}
                                                 >
                                                     {n}
                                                 </button>
