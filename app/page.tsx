@@ -144,74 +144,101 @@ export default function Home() {
         )}
 
         {view === "stylist" && (
-          <div className="flex flex-col h-full px-4 pb-[120px] pt-4">
+          <div className="flex flex-col h-full px-4 pb-[120px] pt-4 max-w-xl mx-auto w-full">
             {!result ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-center px-8 animate-fade-in">
-                <div className="w-[70px] h-[70px] rounded-full flex items-center justify-center mb-6 bg-fill-tertiary">
-                  <Sparkles size={32} className="text-label-secondary" />
+              <div className="flex-1 flex flex-col items-center justify-center text-center px-8 animate-fade-in transition-all">
+                <div className="w-[80px] h-[80px] rounded-full flex items-center justify-center mb-6 bg-gradient-to-br from-fill-tertiary to-transparent ring-1 ring-white/10 shadow-2xl relative overflow-hidden group">
+                  <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <Sparkles size={36} className="text-tint drop-shadow-[0_0_15px_rgba(10,132,255,0.5)]" />
                 </div>
-                <p className="text-title-2 mb-2 text-label-primary">
-                  What are you dressing for?
+                <p className="text-title-2 mb-3 text-label-primary tracking-tight font-bold">
+                  Personal Stylist
                 </p>
-                <p className="text-body text-label-secondary">
-                  Describe the occasion or weather, and I'll suggest an outfit from your clean items.
+                <p className="text-body text-label-secondary leading-relaxed max-w-[280px]">
+                  Describe the occasion, weather, or vibe, and I'll curate an outfit from your closet.
                 </p>
               </div>
             ) : (
-              <div className="flex-1 pt-4 animate-slide-up">
-                <p className="text-caption-1 font-semibold uppercase tracking-wider mb-4 text-label-tertiary pl-1">
-                  Suggested Outfit
-                </p>
-
-                {result.items.length > 0 && (
-                  <div className="flex gap-4 overflow-x-auto pb-6 no-scrollbar -mx-4 px-4 snap-x">
-                    {result.items.map(item => (
-                      <div
-                        key={item.id}
-                        className="relative w-[140px] aspect-square flex-shrink-0 rounded-2xl overflow-hidden bg-secondary-background snap-center shadow-lg border border-white/5 animate-pop"
-                      >
-                        <Image src={item.image_url} alt="" fill className="object-cover" />
-                      </div>
-                    ))}
+              <div className="flex-1 pt-2 animate-slide-up pb-4 overflow-y-auto no-scrollbar">
+                {/* User Prompt Bubble */}
+                <div className="flex justify-end mb-6 px-2">
+                  <div className="bg-tint px-4 py-3 rounded-[20px] rounded-tr-[4px] max-w-[85%] shadow-sm">
+                    <p className="text-body text-white font-medium leading-snug">{prompt}</p>
                   </div>
-                )}
-
-                <div className="p-5 rounded-[18px] mt-2 bg-secondary-background">
-                  <p className="text-body text-label-primary leading-relaxed">
-                    {result.reason}
-                  </p>
                 </div>
 
-                <div className="flex justify-center mt-6">
-                  <button
-                    onClick={() => { setResult(null); setPrompt(""); triggerHaptic('light'); }}
-                    className="ios-btn text-body font-medium text-tint"
-                  >
-                    Try Another
-                  </button>
+                {/* AI Response */}
+                <div className="pl-1">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Sparkles size={16} className="text-label-tertiary" />
+                    <span className="text-caption-1 font-medium text-label-tertiary uppercase tracking-wider">
+                      Suggestion
+                    </span>
+                  </div>
+
+                  <div className="p-5 rounded-[22px] bg-secondary-background ring-1 ring-white/5 shadow-sm mb-6">
+                    <p className="text-[17px] leading-[1.6] text-label-primary font-normal">
+                      {result.reason}
+                    </p>
+                  </div>
+
+                  {result.items.length > 0 && (
+                    <div className="mb-8">
+                      <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar -mx-4 px-4 snap-x">
+                        {result.items.map((item, i) => (
+                          <div
+                            key={item.id}
+                            className="relative w-[160px] aspect-[3/4] flex-shrink-0 rounded-[18px] overflow-hidden bg-fill-tertiary snap-start shadow-md border border-white/10 animate-scale-in"
+                            style={{ animationDelay: `${i * 100}ms` }}
+                          >
+                            <Image src={item.image_url} alt="" fill className="object-cover" />
+                            <div className="absolute bottom-0 inset-x-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
+                              <p className="text-[13px] font-semibold text-white truncate">
+                                {item.tags?.sub_category || "Item"}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex justify-center">
+                    <button
+                      onClick={() => {
+                        setResult(null);
+                        setPrompt("");
+                        triggerHaptic('medium');
+                      }}
+                      className="h-10 px-6 rounded-full bg-fill-tertiary hover:bg-fill-secondary active:scale-95 transition-all flex items-center gap-2"
+                    >
+                      <span className="text-[15px] font-semibold text-label-primary">Start Over</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
 
             {/* Compose Bar */}
-            <div className="mt-auto pt-4">
-              <div className="flex gap-3 p-1.5 pl-4 rounded-[22px] bg-secondary-background items-center ring-1 ring-white/10 focus-within:ring-tint/50 transition-all">
+            <div className={`mt-auto pt-4 transition-all duration-300 ${result ? 'translate-y-0' : ''}`}>
+              <div className="flex gap-3 p-1.5 pl-4 rounded-[26px] bg-grouped-secondary items-center ring-1 ring-white/10 focus-within:ring-tint/50 focus-within:bg-secondary-background transition-all shadow-lg">
                 <input
                   value={prompt}
                   onChange={e => setPrompt(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && !thinking && ask()}
-                  placeholder="Describe the occasion..."
-                  className="flex-1 py-2 text-body bg-transparent outline-none text-label-primary placeholder:text-label-tertiary"
+                  placeholder="Ask for an outfit..."
+                  disabled={thinking || !!result}
+                  className="flex-1 py-2.5 text-[17px] bg-transparent outline-none text-label-primary placeholder:text-label-tertiary"
                 />
                 <button
                   onClick={ask}
-                  disabled={thinking || !prompt.trim()}
-                  className="w-[36px] h-[36px] rounded-full flex items-center justify-center bg-tint disabled:opacity-30 transition-all active:scale-95"
+                  disabled={thinking || !prompt.trim() || !!result}
+                  className="w-[40px] h-[40px] rounded-full flex items-center justify-center bg-tint disabled:opacity-30 disabled:hidden transition-all active:scale-90 shadow-md"
                 >
                   {thinking ? (
-                    <Loader2 size={16} className="animate-spin text-white" />
+                    <Loader2 size={18} className="animate-spin text-white" />
                   ) : (
-                    <ArrowUp size={18} className="text-white" strokeWidth={3} />
+                    <ArrowUp size={20} className="text-white" strokeWidth={3} />
                   )}
                 </button>
               </div>

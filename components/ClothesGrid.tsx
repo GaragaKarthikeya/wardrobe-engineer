@@ -8,22 +8,25 @@ import { ItemDetailModal } from "./ItemDetailModal";
 import { Loader2, X, Trash2 } from "lucide-react";
 import { useToast } from "./Toast";
 import { triggerHaptic } from "@/lib/haptics";
-
-type Category = 'all' | 'Top' | 'Bottom' | 'Shoe' | 'Outerwear';
-
-const CATEGORIES: { value: Category; label: string }[] = [
-    { value: 'all', label: 'All' },
-    { value: 'Top', label: 'Tops' },
-    { value: 'Bottom', label: 'Bottoms' },
-    { value: 'Shoe', label: 'Shoes' },
-    { value: 'Outerwear', label: 'Outerwear' },
-];
+import { FilterModal } from "./FilterModal";
+import { Filter, SlidersHorizontal, CheckCircle2 } from "lucide-react";
 
 export function ClothesGrid() {
     const { toast } = useToast();
     const [items, setItems] = useState<ClothingItem[]>([]);
     const [loading, setLoading] = useState(true);
-    const [category, setCategory] = useState<Category>('all');
+
+    // Filter State
+    const [showFilters, setShowFilters] = useState(false);
+    const [filters, setFilters] = useState<{
+        category: string;
+        status: 'all' | 'clean' | 'dirty';
+        sort: 'newest' | 'oldest';
+    }>({
+        category: 'all',
+        status: 'all',
+        sort: 'newest'
+    });
 
     const [selectMode, setSelectMode] = useState(false);
     const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -89,7 +92,18 @@ export function ClothesGrid() {
         setSelected(new Set());
     };
 
-    const filtered = category === 'all' ? items : items.filter(i => i.tags?.category === category);
+    // Derived State
+    const filtered = items
+        .filter(i => {
+            if (filters.category !== 'all' && i.tags?.category !== filters.category) return false;
+            if (filters.status === 'clean' && !i.is_clean) return false;
+            if (filters.status === 'dirty' && i.is_clean) return false;
+            return true;
+        })
+        .sort((a, b) => {
+            if (filters.sort === 'oldest') return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        });
 
     if (loading) {
         return (
@@ -114,24 +128,27 @@ export function ClothesGrid() {
 
     return (
         <>
-            {/* iOS Segmented Control */}
-            <div className="flex p-0.5 rounded-[9px] mb-6 bg-fill-tertiary">
-                {CATEGORIES.map(c => {
-                    const isActive = category === c.value;
-                    return (
-                        <button
-                            key={c.value}
-                            onClick={() => { setCategory(c.value); triggerHaptic('selection'); }}
-                            className={`flex-1 py-[6px] rounded-[7px] text-[13px] font-medium transition-all active:scale-95 ${isActive
-                                ? "bg-grouped-secondary text-label-primary shadow-sm"
-                                : "text-label-secondary hover:text-label-primary"
-                                }`}
-                        >
-                            {c.label}
-                        </button>
-                    );
-                })}
-            </div>
+            {/* Header Controls */}
+            {!selectMode && (
+                <div className="flex items-center justify-between mb-4">
+                    <button
+                        onClick={() => { setShowFilters(true); triggerHaptic('light') }}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary-background active:bg-fill-tertiary transition-colors border border-white/5"
+                    >
+                        <SlidersHorizontal size={16} className={filters.category !== 'all' ? 'text-tint' : 'text-label-secondary'} />
+                        <span className={`text-[15px] font-medium ${filters.category !== 'all' ? 'text-label-primary' : 'text-label-secondary'}`}>
+                            {filters.category === 'all' ? 'Filter' : filters.category}
+                        </span>
+                    </button>
+
+                    <button
+                        onClick={() => { setSelectMode(true); triggerHaptic('light') }}
+                        className="text-[15px] font-medium text-tint px-2 py-1"
+                    >
+                        Select
+                    </button>
+                </div>
+            )}
 
             {/* Select Mode Bar */}
             {selectMode && (
@@ -159,8 +176,8 @@ export function ClothesGrid() {
             )}
 
             {/* Hint text */}
-            {!selectMode && (
-                <p className="text-caption-1 text-center mb-4 text-label-tertiary font-medium">
+            {!selectMode && items.length > 0 && (
+                <p className="text-caption-1 text-center mb-4 text-label-tertiary font-medium opacity-0 animate-[fadeIn_1s_delay-500ms_forwards]">
                     Tap to toggle clean/dirty • Long press for options
                 </p>
             )}
@@ -168,7 +185,7 @@ export function ClothesGrid() {
             {/* Grid */}
             <div className="grid grid-cols-2 gap-x-4 gap-y-6 pb-8">
                 {filtered.map(item => (
-                    <div key={item.id} className="flex flex-col gap-1.5">
+                    <div key={item.id} className="flex flex-col gap-1.5 animate-scale-in">
                         <ClothCard
                             item={item}
                             onToggle={toggle}
@@ -187,15 +204,25 @@ export function ClothesGrid() {
 
             {!filtered.length && (
                 <p className="text-center py-12 text-body text-label-tertiary">
-                    No items found in {category}.
+                    No items found matching your filters.
                 </p>
             )}
+
+            {/* Modals */}
+            <FilterModal
+                isOpen={showFilters}
+                onClose={() => setShowFilters(false)}
+                filters={filters}
+                setFilters={setFilters}
+            />
 
             {editing && (
                 <ItemDetailModal
                     item={editing}
                     onClose={() => setEditing(null)}
-                    onUpdate={(id, tags) => setItems(p => p.map(i => i.id === id ? { ...i, tags } : i))}
+                    onUpdate={(id, tags) => {
+                        setItems(p => p.map(i => i.id === id ? { ...i, tags } : i));
+                    }}
                 />
             )}
         </>
