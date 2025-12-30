@@ -70,7 +70,7 @@ export default function Home() {
     triggerHaptic();
 
     let successCount = 0;
-    let failCount = 0;
+    let lastError = "";
 
     try {
       // Process all files
@@ -94,9 +94,9 @@ export default function Home() {
           const newItem = await uploadImageAction(formData);
           await saveItem(newItem);
           successCount++;
-        } catch (error) {
+        } catch (error: any) {
           console.error(`Failed to upload ${file.name}:`, error);
-          failCount++;
+          lastError = error.message || "Upload failed";
         }
       }
 
@@ -106,13 +106,17 @@ export default function Home() {
         setRefreshTrigger(p => p + 1);
         syncWithSupabase();
       }
-      if (failCount > 0) {
-        toast(`${failCount} failed to upload`, "error");
+
+      // Show rejection reason if any file failed
+      if (lastError && successCount === 0) {
+        toast(lastError, "error");
+      } else if (lastError && successCount > 0) {
+        toast(`${files.length - successCount} rejected`, "error");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
       triggerHaptic();
-      toast("Failed to upload", "error");
+      toast(error.message || "Failed to upload", "error");
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -533,7 +537,7 @@ export default function Home() {
       <FilterModal
         isOpen={showFilters}
         onClose={() => setShowFilters(false)}
-        filters={{ category: 'all', status: 'all', sort: 'newest' }}
+        filters={{ category: 'all', status: 'all', formality: 'all', pattern: 'all', seasons: [], occasions: [], sort: 'newest' }}
         setFilters={() => { }}
       />
     </div>
