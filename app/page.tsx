@@ -57,6 +57,7 @@ export default function Home() {
   const [thinking, setThinking] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [lastPrompt, setLastPrompt] = useState(""); // Store the last used prompt for Try Again
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -138,17 +139,20 @@ export default function Home() {
 
     triggerHaptic();
     setThinking(true);
-    setPrompt(text);
+    setLastPrompt(text); // Store for "Try Again"
+    setResult(null); // Clear previous result to show loading state
 
     try {
       const items = await getAllItems();
       const response = await askStylist(items, text);
       setResult(response);
+      setPrompt(text); // Update prompt to show in bubble
       triggerHaptic();
     } catch (e) {
       console.error(e);
       triggerHaptic();
       toast("Stylist is unavailable", "error");
+      // Keep prompt so user can try again
     } finally {
       setThinking(false);
     }
@@ -231,7 +235,7 @@ export default function Home() {
                     className="flex justify-end"
                   >
                     <div className="bg-white/10 backdrop-blur-xl px-5 py-3.5 rounded-[20px] rounded-tr-[6px] border border-white/10 max-w-[85%]">
-                      <p className="text-[16px] text-white leading-relaxed font-medium">{prompt}</p>
+                      <p className="text-[16px] text-white leading-relaxed font-medium">{lastPrompt}</p>
                     </div>
                   </motion.div>
 
@@ -359,13 +363,13 @@ export default function Home() {
                     {/* Secondary Buttons Row */}
                     <div className="flex gap-3">
                       <button
-                        onClick={() => { triggerHaptic(); ask(prompt); }}
+                        onClick={() => { triggerHaptic(); ask(lastPrompt); }}
                         className="flex-1 py-3 rounded-full bg-white/10 border border-white/10 text-[15px] font-medium text-white/80 flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
                       >
                         <RotateCcw size={16} /> Try Again
                       </button>
                       <button
-                        onClick={() => { triggerHaptic(); setResult(null); setPrompt(""); }}
+                        onClick={() => { triggerHaptic(); setResult(null); setPrompt(""); setLastPrompt(""); }}
                         className="flex-1 py-3 rounded-full bg-white/5 border border-white/10 text-[15px] font-medium text-white/60 flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
                       >
                         <X size={16} /> New
@@ -486,8 +490,8 @@ export default function Home() {
                 </motion.div>
               )}
 
-              {/* Input Box - Only show when no result */}
-              {!result && (
+              {/* Input Box - Only show when no result and not thinking */}
+              {!result && !thinking && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -501,16 +505,15 @@ export default function Home() {
                   <input
                     value={prompt}
                     onChange={e => setPrompt(e.target.value)}
-                    onKeyDown={e => e.key === "Enter" && !thinking && ask()}
+                    onKeyDown={e => e.key === "Enter" && ask()}
                     onFocus={() => setIsInputFocused(true)}
                     onBlur={() => setIsInputFocused(false)}
                     placeholder="What's the occasion?"
-                    disabled={thinking}
                     className="flex-1 py-2 bg-transparent outline-none text-[16px] text-white placeholder:text-white/35"
                   />
                   <button
                     onClick={() => ask()}
-                    disabled={thinking || !prompt.trim()}
+                    disabled={!prompt.trim()}
                     className={`
                       w-9 h-9 rounded-full flex items-center justify-center 
                       transition-all duration-200
@@ -521,11 +524,7 @@ export default function Home() {
                       active:scale-95
                     `}
                   >
-                    {thinking ? (
-                      <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                    ) : (
-                      <ArrowUp size={18} className={prompt.trim() ? "text-black" : "text-white/60"} strokeWidth={2.5} />
-                    )}
+                    <ArrowUp size={18} className={prompt.trim() ? "text-black" : "text-white/60"} strokeWidth={2.5} />
                   </button>
                 </motion.div>
               )}

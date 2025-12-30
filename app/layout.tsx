@@ -14,6 +14,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://wardrobe-engineer.vercel.app"),
   title: "Wardrobe Engineer",
   description: "AI-powered personal wardrobe assistant. Manage your closet, track clean/dirty status, and get AI outfit recommendations.",
   manifest: "/manifest.json",
