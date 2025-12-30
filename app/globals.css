@@ -13,10 +13,10 @@
   --color-grouped-background: #000000;
   --color-grouped-secondary: rgba(255, 255, 255, 0.04);
 
-  /* Glass Materials - Pure Black optimized */
-  --glass-bg: rgba(255, 255, 255, 0.03);
-  --glass-bg-elevated: rgba(255, 255, 255, 0.06);
-  --glass-bg-ultra: rgba(255, 255, 255, 0.02);
+  /* Glass Materials - Dark Mode Optimized */
+  --glass-bg: rgba(0, 0, 0, 0.3);
+  --glass-bg-elevated: rgba(0, 0, 0, 0.5);
+  --glass-bg-ultra: rgba(0, 0, 0, 0.4);
   --glass-border: rgba(255, 255, 255, 0.15);
   --glass-border-subtle: rgba(255, 255, 255, 0.08);
   --glass-blur: 40px;
@@ -299,6 +299,32 @@
     background: rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
+  }
+
+  @keyframes float {
+
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  @keyframes pulse {
+
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    50% {
+      opacity: 0.8;
+      transform: scale(0.95);
+    }
   }
 
   /* ─────────────────────────────────────────────────────────────────────────
@@ -678,9 +704,11 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 
-  /* Floating Tab Bar - Pure Black with white border */
+  /* Floating Tab Bar - Pure Black with Glass Mask */
   .liquid-tab-bar {
-    background: transparent;
+    background: var(--glass-bg-elevated);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 28px;
   }
@@ -754,10 +782,11 @@
 
   /* Sheet Handle */
   .liquid-handle {
-    width: 36px;
+    width: 44px;
     height: 5px;
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 9999px;
-    margin: 8px auto 16px;
+    background: rgba(255, 255, 255, 0.4);
+    border-radius: 99px;
+    margin: 10px auto 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   }
 }

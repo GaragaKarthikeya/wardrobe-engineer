@@ -1,368 +1,328 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { Plus, LayoutGrid, Sparkles, ArrowUp, X } from "lucide-react";
+import { triggerHaptic } from "@/lib/haptics";
 import { ClothesGrid } from "@/components/ClothesGrid";
-import { ArrowUp, Sparkles, Plus, LayoutGrid } from "lucide-react";
-import { supabase } from "@/lib/supabase";
-import { analyzeImageAction, recommendOutfitAction } from "./actions";
-import { ClothingItem } from "@/types";
-import Image from "next/image";
+import { FilterModal } from "@/components/FilterModal";
 import { useToast } from "@/components/Toast";
-import { convertToJpeg, SUPPORTED_FORMATS } from "@/lib/image";
-import { triggerHaptic, prepareHaptics } from "@/lib/haptics";
-import { saveLocalItem, getLocalItems } from "@/lib/db";
+import { recommendOutfitAction, analyzeImageAction as uploadImageAction } from "@/app/actions";
+import { getLocalItems as getAllItems, saveLocalItem as saveItem } from "@/lib/db";
+import { syncFromServer as syncWithSupabase } from "@/lib/sync";
+import Image from "next/image"; // Added Image import
 
-type View = "closet" | "stylist";
+// Wrapper to match expected interface and fetch item details
+const askStylist = async (items: any[], prompt: string) => {
+  const res = await recommendOutfitAction(prompt, items);
+
+  // Map IDs back to full item objects
+  const recommendedItems = res.selected_item_ids
+    .map((id: string) => items.find(i => i.id === id))
+    .filter(Boolean);
+
+  return { reasoning: res.reasoning, items: recommendedItems };
+};
+
+// ... type definition ...
+interface StylistResult {
+  reasoning: string;
+  items: any[];
+}
+import { AnimatePresence, motion } from "framer-motion";
 
 const SUGGESTIONS = [
   "Casual coffee date",
   "Business meeting",
   "Rainy day comfort",
-  "Night out"
-];
-
-const LOADING_STEPS = [
-  "Analyzing your closet...",
-  "Matching colors...",
-  "Checking weather patterns...",
-  "Finalizing your look..."
+  "Night out",
+  "Weekend brunch",
+  "Gym workout",
+  "Date night"
 ];
 
 export default function Home() {
-  const { toast } = useToast();
-  const [view, setView] = useState<View>("closet");
-  const [isInputFocused, setIsInputFocused] = useState(false);
-
+  const [view, setView] = useState<"closet" | "stylist">("closet");
+  const [showFilters, setShowFilters] = useState(false);
   const [prompt, setPrompt] = useState("");
+  const [result, setResult] = useState<StylistResult | null>(null);
   const [thinking, setThinking] = useState(false);
-  const [loadingStep, setLoadingStep] = useState(0);
-  const [result, setResult] = useState<{ items: ClothingItem[]; reason: string } | null>(null);
-
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState({ done: 0, total: 0 });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // Prepare haptics for iOS on first user interaction
+  // Sync on load
   useEffect(() => {
-    const handleFirstInteraction = () => {
-      prepareHaptics();
-      window.removeEventListener('touchstart', handleFirstInteraction);
-      window.removeEventListener('click', handleFirstInteraction);
-    };
-
-    window.addEventListener('touchstart', handleFirstInteraction, { passive: true });
-    window.addEventListener('click', handleFirstInteraction, { passive: true });
-
-    return () => {
-      window.removeEventListener('touchstart', handleFirstInteraction);
-      window.removeEventListener('click', handleFirstInteraction);
-    };
+    syncWithSupabase().then(() => setRefreshTrigger(p => p + 1));
   }, []);
 
-  const upload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const switchView = (v: "closet" | "stylist") => {
     triggerHaptic();
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
+    setView(v);
+  };
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
     setUploading(true);
-    setProgress({ done: 0, total: files.length });
+    triggerHaptic();
 
-    let ok = 0;
-    for (let i = 0; i < files.length; i++) {
-      setProgress({ done: i + 1, total: files.length });
-      try {
-        const blob = await convertToJpeg(files[i]);
-        const file = new File([blob], `${Date.now()}.jpg`, { type: 'image/jpeg' });
-        const name = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
+    const formData = new FormData();
+    formData.append("file", file);
 
-        await supabase.storage.from("wardrobe").upload(name, file);
-        const url = supabase.storage.from("wardrobe").getPublicUrl(name).data.publicUrl;
+    try {
+      const newItem = await uploadImageAction(formData);
+      await saveItem(newItem);
 
-        const form = new FormData();
-        form.append("file", file);
-        const tags = await analyzeImageAction(form);
-
-        // Insert to server
-        const { data } = await supabase.from("items").insert({ image_url: url, tags, is_clean: true }).select().single();
-
-        // Also save to local DB for instant access
-        if (data) {
-          await saveLocalItem(data as ClothingItem);
-        }
-
-        ok++;
-        triggerHaptic();
-      } catch (err) {
-        console.error(err);
-        triggerHaptic();
-      }
-    }
-
-    if (ok) toast(`${ok} item${ok > 1 ? 's' : ''} added`, "success");
-    setUploading(false);
-    if (fileRef.current) fileRef.current.value = "";
-    // Trigger a soft refresh by switching views
-    if (ok) {
-      setView("stylist");
-      setTimeout(() => setView("closet"), 100);
+      triggerHaptic();
+      toast("Item added to closet", "success");
+      setRefreshTrigger(p => p + 1);
+      syncWithSupabase();
+    } catch (error) {
+      console.error(error);
+      triggerHaptic();
+      toast("Failed to upload", "error");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
   const ask = async (overridePrompt?: string) => {
-    const p = overridePrompt || prompt;
-    if (!p.trim()) return;
+    const text = overridePrompt || prompt;
+    if (!text.trim()) return;
+
     triggerHaptic();
-
     setThinking(true);
-    setResult(null);
-    setLoadingStep(0);
-
-    const interval = setInterval(() => {
-      setLoadingStep(prev => (prev + 1) % LOADING_STEPS.length);
-    }, 800);
+    setPrompt(text);
 
     try {
-      // Try local data first
-      let inv = await getLocalItems();
-
-      // Fallback to server if no local data
-      if (!inv.length) {
-        const { data } = await supabase.from("items").select("*");
-        inv = (data || []) as ClothingItem[];
-      }
-
-      if (!inv.length) {
-        toast("Add items first", "info");
-        setThinking(false);
-        clearInterval(interval);
-        return;
-      }
-
-      const res = await recommendOutfitAction(p, inv);
-      clearInterval(interval);
-
-      if (res.selected_item_ids?.length) {
-        // Find items in our local inventory
-        const selectedItems = inv.filter(i => res.selected_item_ids.includes(i.id));
-        setResult({ items: selectedItems, reason: res.reasoning });
-        triggerHaptic();
-      } else {
-        setResult({ items: [], reason: res.reasoning });
-        triggerHaptic();
-      }
-    } catch (err) {
-      clearInterval(interval);
-      toast("Something went wrong", "error");
+      const items = await getAllItems();
+      const response = await askStylist(items, text);
+      setResult(response);
       triggerHaptic();
+    } catch (e) {
+      console.error(e);
+      triggerHaptic();
+      toast("Stylist is unavailable", "error");
     } finally {
       setThinking(false);
     }
   };
 
-  const switchView = (newView: View) => {
-    if (view !== newView) {
-      triggerHaptic();
-      setView(newView);
-    }
-  };
-
   return (
-    <div className="min-h-[100dvh] flex flex-col bg-system-background font-sans selection:bg-tint/30 tracking-tight">
-      {/* Navigation Bar - iOS 26 Liquid Glass */}
-      <header className="safe-top px-5 sticky top-0 z-40 liquid-glass-ultra">
-        <div className="flex items-center justify-between py-4 min-h-[60px]">
-          <h1 className="text-[28px] text-label-primary font-bold tracking-tight">
-            {view === "closet" ? "Closet" : "Stylist"}
-          </h1>
+    <div className="min-h-screen bg-black text-white selection:bg-white/20 pb-24 relative overflow-hidden">
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleUpload}
+        className="hidden"
+        accept="image/*"
+      />
 
-          {view === "closet" && (
-            <button
-              onClick={() => { fileRef.current?.click(); triggerHaptic(); }}
-              disabled={uploading}
-              className="liquid-button liquid-pill-sm flex items-center justify-center w-10 h-10 p-0"
-            >
-              {uploading ? (
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <Plus size={20} strokeWidth={2.5} className="text-label-primary" />
-              )}
-            </button>
-          )}
+      {/* Header - Liquid Glass */}
+      <header className="fixed top-0 left-0 right-0 z-50 animate-slide-down-fade">
+        <div className="liquid-glass-ultra mx-4 mt-safe-top h-[60px] flex items-center justify-between px-5 rounded-[24px]">
+          <span className="text-[28px] font-bold tracking-tight text-white drop-shadow-md">
+            Closet
+          </span>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="w-10 h-10 rounded-full liquid-button liquid-pill-sm flex items-center justify-center p-0"
+          >
+            {uploading ? (
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <Plus size={24} className="text-white" />
+            )}
+          </button>
         </div>
-
-        {/* Progress Bar - Animated */}
-        {uploading && (
-          <div className="h-[2px] rounded-full overflow-hidden mb-3 bg-fill-quaternary">
-            <div
-              className="h-full bg-label-primary/80 transition-all duration-300 ease-out"
-              style={{ width: `${(progress.done / progress.total) * 100}%` }}
-            />
-          </div>
-        )}
       </header>
 
-      {/* Hidden Input for Uploads */}
-      <input type="file" ref={fileRef} className="hidden" accept={SUPPORTED_FORMATS} multiple onChange={upload} />
+      {/* Spacer for fixed header */}
+      <div className="h-[calc(60px+env(safe-area-inset-top)+24px)]" />
 
-      {/* Content */}
-      <main className="flex-1 overflow-auto">
-        {view === "closet" && (
-          <div className="px-4 pb-[120px] pt-4">
-            <ClothesGrid />
-          </div>
-        )}
+      {/* Main Content Area with Sliding Transition */}
+      <main className="px-4 relative min-h-[80vh]">
+        <AnimatePresence mode="wait">
+          {view === "closet" ? (
+            <motion.div
+              key="closet"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
+            >
+              <ClothesGrid
+                showFilters={showFilters}
+                setShowFilters={setShowFilters}
+                refreshTrigger={refreshTrigger}
+              />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="stylist"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
+              className="flex flex-col h-[calc(100vh-180px)]"
+            >
+              {/* Stylist UI Window - Matches Tab Bar Style */}
+              <div className="flex-1 flex flex-col relative overflow-hidden rounded-[32px] liquid-glass-elevated border-white/10 shadow-2xl">
 
-        {view === "stylist" && (
-          <div className="flex flex-col h-full px-4 pb-[140px] pt-4 max-w-xl mx-auto w-full relative">
-
-            {/* Loading Overlay */}
-            {thinking && (
-              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-system-background/90 backdrop-blur-sm animate-fade-in">
-                <div className="relative mb-6">
-                  <div className="w-14 h-14 rounded-full border-[3px] border-fill-tertiary border-t-tint animate-spin" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Sparkles size={20} className="text-tint animate-pulse" />
-                  </div>
-                </div>
-                <p className="text-body font-medium text-label-secondary">
-                  {LOADING_STEPS[loadingStep]}
-                </p>
-              </div>
-            )}
-
-            {/* Empty State */}
-            {!result && !thinking ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-center px-4 animate-fade-in">
-                <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 border border-white/20">
-                  <Sparkles size={36} className="text-white" />
-                </div>
-                <p className="text-title-2 mb-2 text-label-primary font-bold">
-                  Personal Stylist
-                </p>
-                <p className="text-body text-label-secondary mb-8 max-w-[280px]">
-                  What are we dressing for today?
-                </p>
-
-                {/* Suggestion Chips - Staggered Animation */}
-                <div className="flex flex-wrap justify-center gap-2.5 max-w-sm">
-                  {SUGGESTIONS.map((s, i) => (
-                    <button
-                      key={s}
-                      onClick={() => { triggerHaptic(); setPrompt(s); ask(s); }}
-                      className="px-4 py-2.5 rounded-full border border-white/15 ios-btn text-subheadline text-label-primary font-medium animate-scale-in"
-                      style={{ animationDelay: `${i * 60}ms` }}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : result && !thinking && (
-              <div className="flex-1 pt-2 animate-fade-in pb-4 overflow-y-auto no-scrollbar">
-                {/* User Prompt Bubble */}
-                <div className="flex justify-end mb-6 px-1">
-                  <div className="bg-tint px-5 py-3 rounded-[22px] rounded-tr-[6px] max-w-[85%] shadow-premium">
-                    <p className="text-[17px] text-white leading-snug font-medium">{prompt}</p>
-                  </div>
-                </div>
-
-                {/* Result Card */}
-                <div className="animate-scale-in">
-                  <div className="flex items-center gap-2 mb-4 px-1">
-                    <div className="w-6 h-6 rounded-full bg-tint-light flex items-center justify-center">
-                      <Sparkles size={12} className="text-tint" />
+                {/* Result Area */}
+                {result ? (
+                  <div className="flex-1 overflow-y-auto p-6 space-y-8 animate-fade-in no-scrollbar pb-32">
+                    {/* User Query Bubble */}
+                    <div className="flex justify-end">
+                      <div className="bg-white/10 backdrop-blur-md px-5 py-3 rounded-[24px] rounded-tr-[4px] border border-white/10 shadow-lg max-w-[85%]">
+                        <p className="text-[17px] text-white leading-snug font-medium">{prompt}</p>
+                      </div>
                     </div>
-                    <span className="text-caption-1 font-semibold text-label-secondary uppercase tracking-wider">
-                      Curated Look
-                    </span>
-                  </div>
 
-                  {/* Editorial Layout */}
-                  {result.items.length > 0 && (
-                    <div className="grid grid-cols-2 gap-3 mb-6">
-                      {result.items.map((item, i) => (
-                        <div
-                          key={item.id}
-                          className={`
-                            relative overflow-hidden rounded-2xl bg-secondary-background shadow-premium
-                            ${i === 0 && result.items.length === 3 ? 'col-span-2 aspect-[16/9]' : 'aspect-[3/4]'}
-                          `}
-                          style={{ animationDelay: `${i * 100}ms` }}
-                        >
-                          <Image src={item.image_url} alt="" fill className="object-cover" />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                    {/* Outfit Showcase - Staggered Animation */}
+                    {result.items.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-3 mb-4 px-1">
+                          <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center border border-white/10">
+                            <Sparkles size={14} className="text-white" />
+                          </div>
+                          <span className="text-[13px] font-bold text-white/60 uppercase tracking-widest">Curated Look</span>
                         </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          {result.items.map((item, i) => (
+                            <motion.div
+                              key={item.id}
+                              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              transition={{ delay: i * 0.15, duration: 0.4, ease: "easeOut" }}
+                              className={`group relative aspect-[3/4] rounded-[24px] overflow-hidden bg-black/40 border border-white/10 shadow-lg ${i === 0 && result.items.length % 2 !== 0 ? 'col-span-2 aspect-[4/3]' : ''}`}
+                            >
+                              <Image
+                                src={item.image_url}
+                                alt="Outfit item"
+                                fill
+                                className="object-cover transition-transform duration-700 group-hover:scale-105"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60" />
+                              <div className="absolute bottom-3 left-3 right-3">
+                                <p className="text-[13px] font-semibold text-white truncate">{item.tags?.sub_category || "Item"}</p>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* AI Reasoning */}
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: result.items.length * 0.15 + 0.2 }}
+                      className="bg-black/40 backdrop-blur-md px-6 py-5 rounded-[28px] border border-white/5 shadow-lg"
+                    >
+                      <div className="prose prose-invert prose-p:text-white/80 prose-p:leading-relaxed">
+                        <p className="text-[16px]">{result.reasoning}</p>
+                      </div>
+                    </motion.div>
+
+                    <button
+                      onClick={() => { setResult(null); setPrompt(""); }}
+                      className="mx-auto flex items-center gap-2 px-6 py-3 rounded-full bg-white/5 border border-white/10 text-[15px] text-white/60 hover:bg-white/10 transition-all"
+                    >
+                      <X size={16} /> Start New Style
+                    </button>
+                  </div>
+                ) : (
+                  // ... Empty State ...
+                  <div className="flex-1 flex flex-col items-center justify-center text-center px-6 relative">
+                    {/* Ambient Glow */}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/5 rounded-full blur-[100px] pointer-events-none" />
+
+                    {/* AI Orb Animation */}
+                    <div className="relative mb-8">
+                      <div className={`w-24 h-24 rounded-full flex items-center justify-center border border-white/20 shadow-[0_0_30px_rgba(255,255,255,0.1)] ${thinking ? 'animate-pulse' : 'animate-[float_6s_ease-in-out_infinite]'}`}>
+                        <div className={`w-16 h-16 rounded-full bg-white/10 blur-xl absolute inset-0 m-auto ${thinking ? 'animate-ping' : ''}`} />
+                        <Sparkles size={40} className="text-white relative z-10" />
+                      </div>
+                    </div>
+
+                    <h2 className="text-[28px] font-bold text-white mb-3 tracking-tight">Personal Stylist</h2>
+                    <p className="text-[17px] text-white/50 max-w-[280px] leading-relaxed">
+                      {thinking ? "Analyzing your wardrobe..." : "What's the occasion today?"}
+                    </p>
+                  </div>
+                )}
+
+                {/* Input Area - Floating Glass Pill */}
+                <div className="p-4 pt-0 z-10">
+                  {/* Suggestion Rail */}
+                  {!result && !thinking && (
+                    <div className="flex overflow-x-auto gap-3 pb-4 px-2 no-scrollbar mask-gradient-x">
+                      {SUGGESTIONS.map((s) => (
+                        <button
+                          key={s}
+                          onClick={() => { triggerHaptic(); setPrompt(s); ask(s); }}
+                          className="whitespace-nowrap px-5 py-2.5 rounded-full bg-white/5 border border-white/10 text-[15px] text-white/90 font-medium active:bg-white/10 transition-all flex-shrink-0"
+                        >
+                          {s}
+                        </button>
                       ))}
                     </div>
                   )}
 
-                  <div className="mb-8">
-                    <p className="text-[17px] leading-[1.6] text-label-primary">
-                      {result.reason}
-                    </p>
-                  </div>
-
-                  <div className="flex justify-center pb-8">
+                  {/* Compose Box */}
+                  <div
+                    className={`
+                        w-full flex items-center gap-3 p-2 pl-5 rounded-[28px] 
+                        bg-black/40 backdrop-blur-xl border transition-all duration-300
+                        ${isInputFocused ? 'border-white/30 shadow-[0_0_20px_rgba(255,255,255,0.05)]' : 'border-white/10'}
+                      `}
+                  >
+                    <input
+                      value={prompt}
+                      onChange={e => setPrompt(e.target.value)}
+                      onKeyDown={e => e.key === "Enter" && !thinking && ask()}
+                      onFocus={() => setIsInputFocused(true)}
+                      onBlur={() => setIsInputFocused(false)}
+                      placeholder="Ask anything..."
+                      disabled={thinking}
+                      className="flex-1 py-1.5 bg-transparent outline-none text-[17px] text-white placeholder:text-white/30"
+                    />
                     <button
-                      onClick={() => {
-                        setResult(null);
-                        setPrompt("");
-                        triggerHaptic();
-                      }}
-                      className="h-12 px-6 rounded-full bg-secondary-background border border-separator/50 ios-btn flex items-center gap-2.5"
+                      onClick={() => ask()}
+                      disabled={thinking || !prompt.trim()}
+                      className={`
+                          w-10 h-10 rounded-full flex items-center justify-center 
+                          transition-all duration-300 ease-out
+                          ${prompt.trim()
+                          ? 'bg-white shadow-[0_0_15px_rgba(255,255,255,0.3)] scale-100 opacity-100'
+                          : 'bg-white/10 scale-90 opacity-40'
+                        }
+                        `}
                     >
-                      <Sparkles size={16} className="text-tint" />
-                      <span className="text-subheadline font-semibold text-label-primary">Style Another Look</span>
+                      {thinking ? (
+                        <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                      ) : (
+                        <ArrowUp size={20} className={prompt.trim() ? "text-black" : "text-white"} strokeWidth={3} />
+                      )}
                     </button>
                   </div>
                 </div>
               </div>
-            )}
-
-            {/* Compose Bar - Pure Black */}
-            <div className="mt-auto pt-4">
-              <div
-                className={`
-                  flex gap-3 p-1.5 pl-5 rounded-full items-center 
-                  border transition-all duration-300
-                  ${isInputFocused ? 'border-white/30' : 'border-white/10'}
-                `}
-              >
-                <input
-                  value={prompt}
-                  onChange={e => setPrompt(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && !thinking && ask()}
-                  onFocus={() => setIsInputFocused(true)}
-                  onBlur={() => setIsInputFocused(false)}
-                  placeholder="Describe the occasion..."
-                  disabled={thinking}
-                  className="flex-1 py-3 text-[17px] bg-transparent outline-none text-label-primary placeholder:text-label-tertiary"
-                />
-                <button
-                  onClick={() => ask()}
-                  disabled={thinking || !prompt.trim()}
-                  className={`
-                    w-9 h-9 rounded-full flex items-center justify-center 
-                    transition-all duration-200 ease-out
-                    ${prompt.trim() ? 'bg-white scale-100 opacity-100' : 'border border-white/10 scale-90 opacity-50'}
-                  `}
-                  style={{ transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }}
-                >
-                  {thinking ? (
-                    <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                  ) : (
-                    <ArrowUp size={18} className="text-white" strokeWidth={2.5} />
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
-      {/* Floating Tab Bar - iOS 26 Liquid Glass */}
+      {/* Floating Tab Bar */}
       <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-slide-up-fade">
-        <div className="liquid-tab-bar flex items-center gap-2 p-2">
+        <div className="liquid-tab-bar flex items-center gap-2 p-2 shadow-2xl">
           <button
             onClick={() => switchView("closet")}
             className={`
@@ -370,13 +330,12 @@ export default function Home() {
               transition-all duration-300 ease-out
               ${view === "closet"
                 ? "liquid-tab-active"
-                : "text-label-tertiary"
+                : "text-white/40 hover:text-white/60"
               }
             `}
-            style={{ transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }}
           >
-            <LayoutGrid size={18} strokeWidth={view === "closet" ? 2.5 : 2} className={view === "closet" ? "text-label-primary" : ""} />
-            <span className={`text-[14px] font-semibold ${view === "closet" ? "text-label-primary" : ""}`}>Closet</span>
+            <LayoutGrid size={20} className={view === "closet" ? "text-white" : ""} />
+            <span className={`text-[15px] font-semibold ${view === "closet" ? "text-white" : ""}`}>Closet</span>
           </button>
 
           <button
@@ -386,16 +345,22 @@ export default function Home() {
               transition-all duration-300 ease-out
               ${view === "stylist"
                 ? "liquid-tab-active"
-                : "text-label-tertiary"
+                : "text-white/40 hover:text-white/60"
               }
             `}
-            style={{ transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }}
           >
-            <Sparkles size={18} strokeWidth={view === "stylist" ? 2.5 : 2} className={view === "stylist" ? "text-label-primary" : ""} />
-            <span className={`text-[14px] font-semibold ${view === "stylist" ? "text-label-primary" : ""}`}>Stylist</span>
+            <Sparkles size={20} className={view === "stylist" ? "text-white" : ""} />
+            <span className={`text-[15px] font-semibold ${view === "stylist" ? "text-white" : ""}`}>Stylist</span>
           </button>
         </div>
       </nav>
+
+      <FilterModal
+        isOpen={showFilters}
+        onClose={() => setShowFilters(false)}
+        filters={{ category: 'all', status: 'all', sort: 'newest' }}
+        setFilters={() => { }}
+      />
     </div>
   );
 }

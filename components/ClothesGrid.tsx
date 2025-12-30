@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState, useCallback } from "react";
 import { ClothingItem } from "@/types";
 import { ClothCard } from "./ClothCard";
@@ -9,15 +7,30 @@ import { useToast } from "./Toast";
 import { triggerHaptic } from "@/lib/haptics";
 import { FilterModal } from "./FilterModal";
 import { loadItemsCacheFirst, updateItem, removeItem, syncFromServer } from "@/lib/sync";
+import { motion, AnimatePresence } from "framer-motion";
 
-export function ClothesGrid() {
+interface Props {
+    showFilters?: boolean;
+    setShowFilters?: (show: boolean) => void;
+    refreshTrigger?: number;
+}
+
+export function ClothesGrid({ showFilters, setShowFilters, refreshTrigger = 0 }: Props) {
     const { toast } = useToast();
     const [items, setItems] = useState<ClothingItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [syncing, setSyncing] = useState(false);
 
     // Filter State
-    const [showFilters, setShowFilters] = useState(false);
+    const [internalShowFilters, setInternalShowFilters] = useState(false);
+
+    // ... rest of logic ...
+
+    useEffect(() => {
+        loadItems();
+    }, [refreshTrigger]);
+
+    // ... loadItems logic ...
     const [filters, setFilters] = useState<{
         category: string;
         status: 'all' | 'clean' | 'dirty';
@@ -284,8 +297,8 @@ export function ClothesGrid() {
 
             {/* Modals */}
             <FilterModal
-                isOpen={showFilters}
-                onClose={() => setShowFilters(false)}
+                isOpen={showFilters ?? false}
+                onClose={() => setShowFilters?.(false)}
                 filters={filters}
                 setFilters={setFilters}
             />

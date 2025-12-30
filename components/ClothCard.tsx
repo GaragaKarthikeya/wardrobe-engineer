@@ -216,17 +216,18 @@ export function ClothCard({ item, onToggle, onEdit, onDelete, onSelect, selected
                     </div>
                 )}
 
-                {/* Status Indicator */}
                 {!selectMode && (
-                    <div
-                        className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full"
-                        style={{
-                            backgroundColor: clean ? '#FFFFFF' : 'rgba(255,255,255,0.15)',
-                            boxShadow: clean
-                                ? '0 0 8px 2px rgba(255, 255, 255, 0.5)'
-                                : 'none'
-                        }}
-                    />
+                    <div className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10 shadow-sm">
+                        <div
+                            className="w-2.5 h-2.5 rounded-full"
+                            style={{
+                                backgroundColor: clean ? '#FFFFFF' : 'rgba(255,255,255,0.15)',
+                                boxShadow: clean
+                                    ? '0 0 8px 2px rgba(255, 255, 255, 0.5)'
+                                    : 'none'
+                            }}
+                        />
+                    </div>
                 )}
             </div>
 
