@@ -21,23 +21,32 @@ const askStylist = async (items: any[], prompt: string) => {
     .map((id: string) => items.find(i => i.id === id))
     .filter(Boolean);
 
-  return { reasoning: res.reasoning, items: recommendedItems };
+  return { 
+    reasoning: res.reasoning, 
+    items: recommendedItems,
+    outfit_type: res.outfit_type,
+    logic: res.logic,
+    vibe: res.vibe
+  };
 };
 
-// ... type definition ...
+// Enhanced type definition for Wardrobe Engineer output
 interface StylistResult {
   reasoning: string;
   items: any[];
+  outfit_type?: string;
+  logic?: string;
+  vibe?: string;
 }
 import { AnimatePresence, motion } from "framer-motion";
 
 const SUGGESTIONS = [
-  "Coffee date",
-  "Business casual",
-  "Workout",
-  "Night out",
-  "Brunch",
-  "Cozy day"
+  "Class today",
+  "Presentation",
+  "Just chilling",
+  "Going out",
+  "Meeting someone",
+  "Need to focus"
 ];
 
 export default function Home() {
@@ -233,12 +242,21 @@ export default function Home() {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2 }}
-                        className="flex items-center gap-2.5 px-1"
+                        className="flex items-center justify-between px-1"
                       >
-                        <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center border border-white/10">
-                          <Sparkles size={13} className="text-white" />
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center border border-white/10">
+                            <Sparkles size={13} className="text-white" />
+                          </div>
+                          <span className="text-[12px] font-semibold text-white/50 uppercase tracking-wider">
+                            {result.outfit_type || "Outfit"}
+                          </span>
                         </div>
-                        <span className="text-[12px] font-semibold text-white/50 uppercase tracking-wider">Outfit</span>
+                        {result.vibe && (
+                          <span className="text-[11px] font-bold text-white/40 uppercase tracking-widest">
+                            {result.vibe}
+                          </span>
+                        )}
                       </motion.div>
 
                       <div className="grid grid-cols-2 gap-3.5">
@@ -263,13 +281,30 @@ export default function Home() {
                             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                             <div className="absolute bottom-3 left-3 right-3">
                               <p className="text-[13px] font-semibold text-white/95 truncate">
-                                {item.tags?.sub_category || "Item"}
+                                {item.tags?.sub_category || item.tags?.category || "Item"}
+                              </p>
+                              <p className="text-[11px] text-white/50 truncate">
+                                {item.tags?.color}
                               </p>
                             </div>
                           </motion.div>
                         ))}
                       </div>
                     </div>
+                  )}
+
+                  {/* Logic Line - Color Theory Explanation */}
+                  {result.logic && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 + result.items.length * 0.1 + 0.1 }}
+                      className="px-1"
+                    >
+                      <p className="text-[13px] text-white/40 font-medium italic">
+                        "{result.logic}"
+                      </p>
+                    </motion.div>
                   )}
 
                   {/* AI Reasoning */}

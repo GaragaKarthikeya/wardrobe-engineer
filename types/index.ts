@@ -40,6 +40,8 @@ export type ClothingTags = {
 
 export type OutfitRecommendation = {
     selected_item_ids: string[];
-    outfit_type?: string;
+    outfit_type?: 'Casual' | 'Smart Casual' | 'Elevated Casual' | 'Business Casual' | 'Formal';
+    logic?: string;
+    vibe?: string;
     reasoning: string;
 };
