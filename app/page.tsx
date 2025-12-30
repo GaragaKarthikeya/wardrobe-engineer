@@ -168,10 +168,10 @@ export default function Home() {
 
   return (
     <div className="min-h-[100dvh] flex flex-col bg-system-background font-sans selection:bg-tint/30 tracking-tight">
-      {/* Navigation Bar - iOS Large Title Style */}
-      <header className="safe-top px-5 sticky top-0 z-40 bg-system-background/80 backdrop-blur-xl border-b border-separator/50">
-        <div className="flex items-center justify-between py-3 min-h-[56px]">
-          <h1 className="text-large-title text-label-primary font-bold">
+      {/* Navigation Bar - iOS 26 Liquid Glass */}
+      <header className="safe-top px-5 sticky top-0 z-40 liquid-glass-ultra">
+        <div className="flex items-center justify-between py-4 min-h-[60px]">
+          <h1 className="text-[28px] text-label-primary font-bold tracking-tight">
             {view === "closet" ? "Closet" : "Stylist"}
           </h1>
 
@@ -179,12 +179,12 @@ export default function Home() {
             <button
               onClick={() => { fileRef.current?.click(); triggerHaptic(); }}
               disabled={uploading}
-              className="ios-btn flex items-center gap-1.5 text-tint font-semibold text-[17px] px-1"
+              className="liquid-button liquid-pill-sm flex items-center justify-center w-10 h-10 p-0"
             >
               {uploading ? (
-                <div className="spinner" />
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
-                <Plus size={24} strokeWidth={2} />
+                <Plus size={20} strokeWidth={2.5} className="text-label-primary" />
               )}
             </button>
           )}
@@ -192,9 +192,9 @@ export default function Home() {
 
         {/* Progress Bar - Animated */}
         {uploading && (
-          <div className="h-[3px] rounded-full overflow-hidden mb-2 bg-fill-tertiary">
+          <div className="h-[2px] rounded-full overflow-hidden mb-3 bg-fill-quaternary">
             <div
-              className="h-full bg-tint transition-all duration-300 ease-out"
+              className="h-full bg-label-primary/80 transition-all duration-300 ease-out"
               style={{ width: `${(progress.done / progress.total) * 100}%` }}
             />
           </div>
@@ -360,39 +360,39 @@ export default function Home() {
         )}
       </main>
 
-      {/* Floating Tab Bar - Premium */}
+      {/* Floating Tab Bar - iOS 26 Liquid Glass */}
       <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-slide-up-fade">
-        <div className="flex items-center gap-1 p-1.5 rounded-full bg-secondary-background/95 backdrop-blur-2xl shadow-premium-lg border border-white/[0.08]">
+        <div className="liquid-tab-bar flex items-center gap-2 p-2">
           <button
             onClick={() => switchView("closet")}
             className={`
-              relative flex items-center gap-2 px-5 h-11 rounded-full 
+              liquid-tab flex items-center gap-2.5 px-6 h-12 rounded-full 
               transition-all duration-300 ease-out
               ${view === "closet"
-                ? "bg-white text-black shadow-sm"
-                : "text-label-secondary"
+                ? "liquid-tab-active"
+                : "text-label-tertiary"
               }
             `}
             style={{ transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }}
           >
-            <LayoutGrid size={18} strokeWidth={view === "closet" ? 2.5 : 2} />
-            <span className="text-[13px] font-semibold">Closet</span>
+            <LayoutGrid size={18} strokeWidth={view === "closet" ? 2.5 : 2} className={view === "closet" ? "text-label-primary" : ""} />
+            <span className={`text-[14px] font-semibold ${view === "closet" ? "text-label-primary" : ""}`}>Closet</span>
           </button>
 
           <button
             onClick={() => switchView("stylist")}
             className={`
-              relative flex items-center gap-2 px-5 h-11 rounded-full 
+              liquid-tab flex items-center gap-2.5 px-6 h-12 rounded-full 
               transition-all duration-300 ease-out
               ${view === "stylist"
-                ? "bg-white text-black shadow-sm"
-                : "text-label-secondary"
+                ? "liquid-tab-active"
+                : "text-label-tertiary"
               }
             `}
             style={{ transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }}
           >
-            <Sparkles size={18} strokeWidth={view === "stylist" ? 2.5 : 2} />
-            <span className="text-[13px] font-semibold">Stylist</span>
+            <Sparkles size={18} strokeWidth={view === "stylist" ? 2.5 : 2} className={view === "stylist" ? "text-label-primary" : ""} />
+            <span className={`text-[14px] font-semibold ${view === "stylist" ? "text-label-primary" : ""}`}>Stylist</span>
           </button>
         </div>
       </nav>

@@ -39,23 +39,21 @@ export function FilterModal({ isOpen, onClose, filters, setFilters }: Props) {
             onClick={onClose}
         >
             <div
-                className="w-full bg-secondary-background rounded-t-[24px] overflow-hidden animate-slide-up shadow-premium-lg border-t border-white/[0.08]"
+                className="w-full liquid-sheet overflow-hidden animate-slide-up"
                 onClick={e => e.stopPropagation()}
                 style={{
                     paddingBottom: 'max(24px, env(safe-area-inset-bottom))',
                 }}
             >
                 {/* Drag Handle */}
-                <div className="w-full py-3 flex justify-center">
-                    <div className="w-10 h-1 rounded-full bg-fill-secondary" />
-                </div>
+                <div className="liquid-handle" />
 
                 {/* Header */}
                 <div className="flex items-center justify-between px-5 pb-4">
                     <span className="text-title-3 font-bold text-label-primary">Filters</span>
                     <button
                         onClick={() => { triggerHaptic(); onClose(); }}
-                        className="w-8 h-8 rounded-full bg-fill-tertiary flex items-center justify-center text-label-secondary ios-btn"
+                        className="w-8 h-8 rounded-full border border-separator flex items-center justify-center text-label-secondary ios-btn"
                     >
                         <X size={16} strokeWidth={2.5} />
                     </button>

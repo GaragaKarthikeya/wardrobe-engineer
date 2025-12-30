@@ -2,41 +2,50 @@
 
 @theme {
   /* ═══════════════════════════════════════════════════════════════════════════
-     APPLE-QUALITY DESIGN SYSTEM
-     Premium dark mode with iOS-inspired micro-interactions
+     iOS 26 LIQUID GLASS DESIGN SYSTEM
+     Translucent, fluid, alive - inspired by visionOS
      ═══════════════════════════════════════════════════════════════════════════ */
 
-  /* System Colors - Pure AMOLED Dark */
+  /* System Colors - Deep Blacks for Glass Contrast */
   --color-system-background: #000000;
-  --color-secondary-background: #0D0D0D;
-  --color-tertiary-background: #1A1A1A;
+  --color-secondary-background: rgba(255, 255, 255, 0.06);
+  --color-tertiary-background: rgba(255, 255, 255, 0.10);
   --color-grouped-background: #000000;
-  --color-grouped-secondary: #0D0D0D;
+  --color-grouped-secondary: rgba(255, 255, 255, 0.04);
+
+  /* Glass Materials */
+  --glass-bg: rgba(255, 255, 255, 0.08);
+  --glass-bg-elevated: rgba(255, 255, 255, 0.12);
+  --glass-bg-ultra: rgba(255, 255, 255, 0.04);
+  --glass-border: rgba(255, 255, 255, 0.15);
+  --glass-border-subtle: rgba(255, 255, 255, 0.08);
+  --glass-blur: 40px;
+  --glass-blur-heavy: 80px;
 
   /* Label Colors - Pure White Hierarchy */
   --color-label-primary: #FFFFFF;
-  --color-label-secondary: rgba(255, 255, 255, 0.55);
-  --color-label-tertiary: rgba(255, 255, 255, 0.30);
-  --color-label-quaternary: rgba(255, 255, 255, 0.15);
+  --color-label-secondary: rgba(255, 255, 255, 0.60);
+  --color-label-tertiary: rgba(255, 255, 255, 0.35);
+  --color-label-quaternary: rgba(255, 255, 255, 0.18);
 
-  /* Separators - Subtle */
-  --color-separator: rgba(255, 255, 255, 0.08);
+  /* Separators - Glass Edge */
+  --color-separator: rgba(255, 255, 255, 0.10);
 
-  /* Fills - Grayscale */
-  --color-fill-primary: rgba(255, 255, 255, 0.20);
-  --color-fill-secondary: rgba(255, 255, 255, 0.12);
-  --color-fill-tertiary: rgba(255, 255, 255, 0.08);
-  --color-fill-quaternary: rgba(255, 255, 255, 0.04);
+  /* Fills - Ultra Subtle */
+  --color-fill-primary: rgba(255, 255, 255, 0.12);
+  --color-fill-secondary: rgba(255, 255, 255, 0.08);
+  --color-fill-tertiary: rgba(255, 255, 255, 0.05);
+  --color-fill-quaternary: rgba(255, 255, 255, 0.02);
 
-  /* Accent Colors - White Only */
-  --color-tint: #FFFFFF;
-  --color-tint-light: rgba(255, 255, 255, 0.10);
-  --color-green: #FFFFFF;
+  /* Accent - Soft White Glow */
+  --color-tint: rgba(255, 255, 255, 0.95);
+  --color-tint-light: rgba(255, 255, 255, 0.12);
+  --color-green: rgba(255, 255, 255, 0.9);
   --color-green-light: rgba(255, 255, 255, 0.10);
-  --color-red: #FFFFFF;
-  --color-red-light: rgba(255, 255, 255, 0.10);
-  --color-orange: #FFFFFF;
-  --color-yellow: #FFFFFF;
+  --color-red: rgba(255, 255, 255, 0.6);
+  --color-red-light: rgba(255, 255, 255, 0.08);
+  --color-orange: rgba(255, 255, 255, 0.85);
+  --color-yellow: rgba(255, 255, 255, 0.85);
 
   /* Premium Font Stack */
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, system-ui, sans-serif;
@@ -589,5 +598,169 @@
     stroke-dasharray: 24;
     stroke-dashoffset: 24;
     animation: checkDraw 0.3s ease-out 0.1s forwards;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     iOS 26 LIQUID GLASS COMPONENTS
+     ═══════════════════════════════════════════════════════════════════════════ */
+
+  /* Base Liquid Glass Panel */
+  .liquid-glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+    border: 1px solid var(--glass-border);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+  }
+
+  /* Elevated Glass - More prominent */
+  .liquid-glass-elevated {
+    background: var(--glass-bg-elevated);
+    backdrop-filter: blur(var(--glass-blur-heavy)) saturate(200%);
+    -webkit-backdrop-filter: blur(var(--glass-blur-heavy)) saturate(200%);
+    border: 1px solid var(--glass-border);
+    box-shadow:
+      0 20px 60px rgba(0, 0, 0, 0.5),
+      0 8px 24px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+  }
+
+  /* Ultra-thin Glass */
+  .liquid-glass-ultra {
+    background: var(--glass-bg-ultra);
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    border: 1px solid var(--glass-border-subtle);
+  }
+
+  /* Pill Shape - Core iOS 26 element */
+  .liquid-pill {
+    border-radius: 9999px;
+    padding: 12px 24px;
+  }
+
+  .liquid-pill-sm {
+    border-radius: 9999px;
+    padding: 8px 16px;
+  }
+
+  /* Floating Element - Detached from edges */
+  .liquid-floating {
+    box-shadow:
+      0 20px 60px rgba(0, 0, 0, 0.5),
+      0 8px 20px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Liquid Card - For content containers */
+  .liquid-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid var(--glass-border-subtle);
+    border-radius: 24px;
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .liquid-card:active {
+    transform: scale(0.98);
+    box-shadow:
+      0 4px 16px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  /* Floating Tab Bar */
+  .liquid-tab-bar {
+    background: var(--glass-bg-elevated);
+    backdrop-filter: blur(var(--glass-blur-heavy)) saturate(200%);
+    -webkit-backdrop-filter: blur(var(--glass-blur-heavy)) saturate(200%);
+    border: 1px solid var(--glass-border);
+    border-radius: 28px;
+    box-shadow:
+      0 16px 48px rgba(0, 0, 0, 0.5),
+      0 4px 16px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  }
+
+  /* Tab Item */
+  .liquid-tab {
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    padding: 10px 20px;
+    border-radius: 20px;
+    position: relative;
+  }
+
+  .liquid-tab-active {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  /* Glass Input */
+  .liquid-input {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border-subtle);
+    border-radius: 9999px;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .liquid-input:focus-within {
+    background: var(--glass-bg-elevated);
+    border-color: rgba(255, 255, 255, 0.25);
+    box-shadow:
+      0 0 0 4px rgba(255, 255, 255, 0.08),
+      0 8px 24px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Glass Button */
+  .liquid-button {
+    background: var(--glass-bg-elevated);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 9999px;
+    padding: 12px 24px;
+    font-weight: 600;
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .liquid-button:active {
+    transform: scale(0.96);
+    background: rgba(255, 255, 255, 0.18);
+  }
+
+  /* Glass Modal Overlay */
+  .liquid-overlay {
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  /* Glass Sheet */
+  .liquid-sheet {
+    background: rgba(28, 28, 30, 0.95);
+    backdrop-filter: blur(var(--glass-blur-heavy)) saturate(200%);
+    -webkit-backdrop-filter: blur(var(--glass-blur-heavy)) saturate(200%);
+    border: 1px solid var(--glass-border);
+    border-bottom: none;
+    border-radius: 28px 28px 0 0;
+    box-shadow:
+      0 -16px 48px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  /* Sheet Handle */
+  .liquid-handle {
+    width: 36px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 9999px;
+    margin: 8px auto 16px;
   }
 }

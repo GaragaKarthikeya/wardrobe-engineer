@@ -47,17 +47,15 @@ export function ItemDetailModal({ item, onClose, onUpdate }: Props) {
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-end bg-black/50 backdrop-blur-md animate-fade-in"
+            className="fixed inset-0 z-50 flex items-end liquid-overlay animate-fade-in"
             onClick={onClose}
         >
             <div
-                className="w-full bg-secondary-background rounded-t-[24px] overflow-hidden animate-slide-up shadow-premium-lg border-t border-white/[0.08]"
+                className="w-full liquid-sheet overflow-hidden animate-slide-up"
                 onClick={e => e.stopPropagation()}
             >
                 {/* Drag Handle */}
-                <div className="w-full py-3 flex justify-center">
-                    <div className="w-10 h-1 rounded-full bg-fill-secondary" />
-                </div>
+                <div className="liquid-handle" />
 
                 {/* Header */}
                 <div className="flex items-center justify-between px-5 pb-4">
@@ -163,6 +161,6 @@ export function ItemDetailModal({ item, onClose, onUpdate }: Props) {
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

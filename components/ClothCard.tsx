@@ -82,16 +82,15 @@ export function ClothCard({ item, onToggle, onEdit, onDelete, onSelect, selected
     // Context Menu Portal
     const contextMenu = showMenu && mounted ? createPortal(
         <div
-            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md"
+            className="fixed inset-0 z-[9999] flex items-center justify-center liquid-overlay"
             onClick={closeMenu}
             style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
         >
             <div
-                className="w-[280px] rounded-2xl overflow-hidden bg-[#2C2C2E] shadow-2xl animate-scale-in"
+                className="w-[300px] rounded-[28px] overflow-hidden liquid-glass-elevated animate-scale-in"
                 onClick={e => e.stopPropagation()}
                 style={{
-                    animation: 'scaleIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
-                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+                    animation: 'scaleIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
                 }}
             >
                 {/* Header with Close Button */}
@@ -107,7 +106,7 @@ export function ClothCard({ item, onToggle, onEdit, onDelete, onSelect, selected
                             <span
                                 className="w-2 h-2 rounded-full"
                                 style={{
-                                    backgroundColor: clean ? '#FFFFFF' : '#555555',
+                                    backgroundColor: clean ? '#FFFFFF' : 'rgba(255,255,255,0.15)',
                                     boxShadow: clean
                                         ? '0 0 6px rgba(255, 255, 255, 0.5)'
                                         : 'none'
@@ -222,7 +221,7 @@ export function ClothCard({ item, onToggle, onEdit, onDelete, onSelect, selected
                     <div
                         className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full"
                         style={{
-                            backgroundColor: clean ? '#FFFFFF' : '#555555',
+                            backgroundColor: clean ? '#FFFFFF' : 'rgba(255,255,255,0.15)',
                             boxShadow: clean
                                 ? '0 0 8px 2px rgba(255, 255, 255, 0.5)'
                                 : 'none'

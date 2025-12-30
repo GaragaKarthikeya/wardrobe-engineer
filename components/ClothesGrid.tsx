@@ -150,7 +150,7 @@ export function ClothesGrid() {
     if (!items.length) {
         return (
             <div className="text-center py-24 px-6 animate-fade-in">
-                <div className="w-16 h-16 rounded-full bg-fill-tertiary mx-auto mb-4 flex items-center justify-center">
+                <div className="w-16 h-16 rounded-full border border-separator mx-auto mb-4 flex items-center justify-center">
                     <SlidersHorizontal size={28} className="text-label-tertiary" />
                 </div>
                 <p className="text-title-3 mb-2 text-label-primary font-semibold">
