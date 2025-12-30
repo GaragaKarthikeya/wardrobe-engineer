@@ -9,7 +9,7 @@ import { Loader2, X, Trash2 } from "lucide-react";
 import { useToast } from "./Toast";
 import { triggerHaptic } from "@/lib/haptics";
 import { FilterModal } from "./FilterModal";
-import { Filter, SlidersHorizontal, CheckCircle2 } from "lucide-react";
+import { Filter, SlidersHorizontal } from "lucide-react";
 
 export function ClothesGrid() {
     const { toast } = useToast();

@@ -28,7 +28,7 @@ const CATEGORIES = [
 export function FilterModal({ isOpen, onClose, filters, setFilters }: Props) {
     if (!isOpen) return null;
 
-    const update = (key: keyof FilterState, value: any) => {
+    const update = (key: keyof FilterState, value: string | 'all' | 'clean' | 'dirty' | 'newest' | 'oldest') => {
         triggerHaptic('selection');
         setFilters({ ...filters, [key]: value });
     };

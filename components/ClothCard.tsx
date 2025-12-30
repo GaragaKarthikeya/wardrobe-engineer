@@ -1,7 +1,7 @@
 "use client";
 
 import { ClothingItem } from "@/types";
-import { Check, Pencil, Trash2, CheckCircle, MoreHorizontal } from "lucide-react";
+import { Check, Pencil, Trash2, CheckCircle } from "lucide-react";
 import Image from "next/image";
 import { useState, useRef } from "react";
 import { triggerHaptic } from "@/lib/haptics";

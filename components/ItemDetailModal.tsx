@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ClothingItem } from "@/types";
+import { ClothingItem, ClothingTags } from "@/types";
 import { Loader2, Check } from "lucide-react";
 import Image from "next/image";
 import { updateItemTagsAction } from "@/app/actions";
@@ -11,7 +11,7 @@ import { triggerHaptic } from "@/lib/haptics";
 interface Props {
     item: ClothingItem;
     onClose: () => void;
-    onUpdate: (id: string, tags: any) => void;
+    onUpdate: (id: string, tags: ClothingTags) => void;
 }
 
 const CATEGORIES = ["Top", "Bottom", "Shoe", "Outerwear", "Accessory"];
@@ -20,7 +20,7 @@ const FORMALITY = ["Casual", "Smart Casual", "Business", "Formal"];
 export function ItemDetailModal({ item, onClose, onUpdate }: Props) {
     const { toast } = useToast();
     const [saving, setSaving] = useState(false);
-    const [tags, setTags] = useState(item.tags || {});
+    const [tags, setTags] = useState<ClothingTags>(item.tags);
 
     const save = async () => {
         triggerHaptic('medium');
@@ -31,15 +31,16 @@ export function ItemDetailModal({ item, onClose, onUpdate }: Props) {
             triggerHaptic('success');
             toast("Saved", "success");
             onClose();
-        } catch (e: any) {
+        } catch (e) {
             triggerHaptic('error');
-            toast(e.message, "error");
+            const msg = e instanceof Error ? e.message : "Failed to save";
+            toast(msg, "error");
         } finally {
             setSaving(false);
         }
     };
 
-    const set = (k: string, v: any) => {
+    const set = (k: keyof ClothingTags, v: any) => {
         triggerHaptic('selection');
         setTags(p => ({ ...p, [k]: v }));
     };
@@ -121,8 +122,8 @@ export function ItemDetailModal({ item, onClose, onUpdate }: Props) {
                                             key={c}
                                             onClick={() => set("category", c)}
                                             className={`flex-1 py-[6px] rounded-[7px] text-[13px] font-medium whitespace-nowrap px-2 transition-all ${isSelected
-                                                    ? "bg-secondary-background text-label-primary shadow-sm"
-                                                    : "text-label-secondary"
+                                                ? "bg-secondary-background text-label-primary shadow-sm"
+                                                : "text-label-secondary"
                                                 }`}
                                         >
                                             {c}
