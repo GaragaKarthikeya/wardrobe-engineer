@@ -183,7 +183,7 @@ export function ClothesGrid({ showFilters, setShowFilters, refreshTrigger = 0 }:
                 <div className="flex items-center justify-between mb-5">
                     <div className="flex items-center gap-2">
                         <button
-                            onClick={() => { setShowFilters(true); triggerHaptic() }}
+                            onClick={() => { setShowFilters?.(true); triggerHaptic() }}
                             className={`
                                 flex items-center gap-2 px-4 py-2 rounded-full ios-btn
                                 transition-all border
