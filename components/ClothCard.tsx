@@ -24,9 +24,15 @@ export function ClothCard({ item, onToggle, onEdit, onDelete, onSelect, selected
 
     const handleTouchStart = () => {
         didLongPress.current = false;
+
+        // Fire haptic IMMEDIATELY on touch (iOS requirement - must be synchronous from user gesture)
+        // This gives immediate tactile feedback that something is happening
+        triggerHaptic('light');
+
         longPressTimer.current = setTimeout(() => {
             didLongPress.current = true;
-            triggerHaptic('medium');
+            // Fire another haptic when menu appears (this one may not work on iOS due to async)
+            triggerHaptic('heavy');
             setShowMenu(true);
         }, 500);
     };

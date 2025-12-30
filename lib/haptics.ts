@@ -1,200 +1,197 @@
 "use client";
 
 /**
- * iOS Safari Haptic Feedback System
+ * iOS Safari Haptic Feedback System - Simplified & Correct
  * 
- * IMPORTANT: iOS Safari does NOT support navigator.vibrate() API.
+ * REALITY CHECK: iOS Safari has SEVERE limitations:
+ * - navigator.vibrate() is NOT supported
+ * - AudioContext tricks do NOT trigger haptics
+ * - ONLY method: <input type="checkbox" switch> label click (iOS 18+)
+ * - ONLY ONE haptic intensity exists (light switch toggle)
+ * - Programmatic triggers ONLY work if called from real user gesture
  * 
- * As of iOS 18+, WebKit introduced haptic feedback for <input type="checkbox" switch> elements.
- * This is the ONLY way to trigger haptic feedback in Safari PWAs.
- * 
- * How it works:
- * 1. Create a hidden <input type="checkbox" switch> with a <label>
- * 2. Programmatically click the LABEL (not the input) to trigger haptic
- * 3. The checkbox toggle triggers the native iOS switch haptic
- * 
- * For Android, we fall back to navigator.vibrate()
+ * Strategy:
+ * - Use single haptic type, vary only repetition count
+ * - Ensure haptic trigger is SYNCHRONOUS from user gesture
+ * - For Android, use navigator.vibrate() normally
  */
 
 type HapticStyle = 'light' | 'medium' | 'heavy' | 'success' | 'error' | 'selection' | 'warning' | 'impact';
 
-// Hidden haptic trigger elements
-let hapticCheckbox: HTMLInputElement | null = null;
+// DOM elements for iOS haptic trick
 let hapticLabel: HTMLLabelElement | null = null;
-let isInitialized = false;
+let hapticCheckbox: HTMLInputElement | null = null;
+let isSetup = false;
 
-// iOS detection
+/**
+ * Detect iOS (iPhone, iPad, iPod)
+ */
 function isIOS(): boolean {
     if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
-    return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+    // Check for iOS devices
+    const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+    // Check for iPad on iOS 13+ (reports as MacIntel but has touch)
+    const isIPadOS = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+
+    return isIOSDevice || isIPadOS;
 }
 
 /**
- * Initialize the hidden haptic trigger elements for iOS
- * Must be called before any haptic can work on iOS
+ * Setup the hidden switch checkbox elements
+ * This creates the iOS haptic trigger mechanism
  */
-function initializeHapticElements(): void {
-    if (typeof document === 'undefined') return;
-    if (isInitialized) return;
+function setupHapticElements(): boolean {
+    if (typeof document === 'undefined') return false;
+    if (isSetup && hapticLabel && hapticCheckbox) return true;
 
     try {
-        // Create container
-        const container = document.createElement('div');
-        container.id = 'haptic-trigger-container';
-        container.setAttribute('aria-hidden', 'true');
-        container.style.cssText = `
-            position: fixed !important;
-            left: -9999px !important;
-            top: -9999px !important;
-            width: 1px !important;
-            height: 1px !important;
-            overflow: hidden !important;
-            opacity: 0 !important;
-            pointer-events: none !important;
-            z-index: -9999 !important;
-        `;
+        // Check if already exists
+        const existing = document.getElementById('ios-haptic-checkbox');
+        if (existing) {
+            hapticCheckbox = existing as HTMLInputElement;
+            hapticLabel = document.getElementById('ios-haptic-label') as HTMLLabelElement;
+            isSetup = true;
+            return true;
+        }
 
-        // Create the switch checkbox - iOS 18+ syntax
+        // Create hidden container
+        const container = document.createElement('div');
+        container.style.cssText = 'position:fixed;top:-100px;left:-100px;width:1px;height:1px;overflow:hidden;pointer-events:none;opacity:0;';
+        container.setAttribute('aria-hidden', 'true');
+
+        // Create the switch checkbox (iOS 18+ feature)
         hapticCheckbox = document.createElement('input');
         hapticCheckbox.type = 'checkbox';
-        hapticCheckbox.id = 'haptic-switch-trigger';
-        hapticCheckbox.setAttribute('switch', ''); // The key attribute for iOS haptic
-        hapticCheckbox.style.cssText = `
-            position: absolute !important;
-            opacity: 0 !important;
-            pointer-events: none !important;
-        `;
+        hapticCheckbox.id = 'ios-haptic-checkbox';
+        hapticCheckbox.setAttribute('switch', ''); // Key iOS 18 attribute!
 
-        // Create label that we'll click to trigger haptic
+        // Create label (clicking this triggers the haptic)
         hapticLabel = document.createElement('label');
-        hapticLabel.htmlFor = 'haptic-switch-trigger';
-        hapticLabel.id = 'haptic-label-trigger';
-        hapticLabel.style.cssText = `
-            position: absolute !important;
-            width: 1px !important;
-            height: 1px !important;
-            opacity: 0 !important;
-        `;
-        hapticLabel.textContent = '';
+        hapticLabel.htmlFor = 'ios-haptic-checkbox';
+        hapticLabel.id = 'ios-haptic-label';
+        hapticLabel.textContent = ' ';
 
         container.appendChild(hapticCheckbox);
         container.appendChild(hapticLabel);
         document.body.appendChild(container);
 
-        isInitialized = true;
-        console.log('[Haptics] iOS haptic trigger initialized');
+        isSetup = true;
+        return true;
     } catch (e) {
-        console.warn('[Haptics] Failed to initialize haptic elements:', e);
+        console.warn('[Haptics] Setup failed:', e);
+        return false;
     }
 }
 
 /**
- * Trigger iOS haptic by clicking the hidden switch label
+ * Fire the iOS haptic (single pulse)
+ * MUST be called synchronously from a user gesture!
  */
-function triggerIOSSwitchHaptic(): void {
-    if (!hapticLabel || !hapticCheckbox) {
-        initializeHapticElements();
+function fireIOSHaptic(): void {
+    if (!hapticLabel) {
+        if (!setupHapticElements()) return;
     }
 
-    if (hapticLabel) {
-        try {
-            // Click the label to trigger the switch haptic
-            hapticLabel.click();
-        } catch (e) {
-            // Silent fail
-        }
+    try {
+        hapticLabel?.click();
+    } catch (e) {
+        // Silent fail
     }
 }
 
 /**
- * Android vibration patterns (in milliseconds)
+ * Fire Android haptic
+ */
+function fireAndroidHaptic(pattern: number | number[]): void {
+    try {
+        if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+            navigator.vibrate(pattern);
+        }
+    } catch (e) {
+        // Silent fail
+    }
+}
+
+/**
+ * Android vibration patterns (milliseconds)
  */
 const ANDROID_PATTERNS: Record<HapticStyle, number | number[]> = {
     light: 10,
-    medium: 25,
-    heavy: 50,
     selection: 8,
-    success: [15, 40, 15],
-    error: [40, 30, 40, 30, 40],
-    warning: [30, 50, 30],
-    impact: 75,
+    medium: 25,
+    heavy: 45,
+    success: [20, 60, 20],
+    error: [30, 40, 30, 40, 30],
+    warning: [25, 50, 25],
+    impact: 60,
 };
 
 /**
- * iOS haptic repeat counts for different styles
- * Since we only have one haptic type (switch toggle), we repeat for intensity
+ * iOS haptic repetition (since only 1 intensity exists)
+ * More taps = perceived stronger haptic
  */
-const IOS_REPEAT: Record<HapticStyle, { count: number; delay: number }> = {
-    light: { count: 1, delay: 0 },
-    medium: { count: 1, delay: 0 },
-    heavy: { count: 2, delay: 50 },
-    selection: { count: 1, delay: 0 },
-    success: { count: 2, delay: 100 },
-    error: { count: 3, delay: 80 },
-    warning: { count: 2, delay: 100 },
-    impact: { count: 2, delay: 40 },
+const IOS_TAPS: Record<HapticStyle, number> = {
+    light: 1,
+    selection: 1,
+    medium: 1,
+    heavy: 2,
+    success: 2,
+    error: 3,
+    warning: 2,
+    impact: 2,
 };
 
 /**
  * Main haptic trigger function
+ * 
+ * IMPORTANT: For iOS, this MUST be called synchronously from user interaction!
+ * Async calls (setTimeout, promises) will NOT trigger haptics.
  */
 export function triggerHaptic(style: HapticStyle = 'light'): void {
     if (typeof window === 'undefined') return;
 
     if (isIOS()) {
-        // iOS - use the switch checkbox workaround
-        const config = IOS_REPEAT[style];
+        // iOS: Use switch checkbox trick
+        const taps = IOS_TAPS[style] || 1;
 
-        // Initial haptic
-        triggerIOSSwitchHaptic();
+        // Fire immediately (first tap - this one works from user gesture)
+        fireIOSHaptic();
 
-        // Additional haptics for stronger feedback
-        for (let i = 1; i < config.count; i++) {
-            setTimeout(() => {
-                triggerIOSSwitchHaptic();
-            }, config.delay * i);
+        // Additional taps for emphasis (these may or may not fire depending on context)
+        for (let i = 1; i < taps; i++) {
+            setTimeout(() => fireIOSHaptic(), i * 50);
         }
     } else {
-        // Android/other - use vibration API
-        try {
-            if (typeof navigator.vibrate === 'function') {
-                navigator.vibrate(ANDROID_PATTERNS[style]);
-            }
-        } catch (e) {
-            // Silent fail
-        }
+        // Android/Desktop: Use Vibration API
+        fireAndroidHaptic(ANDROID_PATTERNS[style]);
     }
 }
 
 /**
- * Prepare haptics - MUST be called on first user interaction for iOS
- * This initializes the hidden switch elements
+ * Initialize haptics - call on first user interaction
+ * Required for iOS to create the hidden elements
  */
 export function prepareHaptics(): void {
     if (isIOS()) {
-        initializeHapticElements();
+        setupHapticElements();
+        // Also fire a silent haptic to "warm up" the system
+        fireIOSHaptic();
     }
 }
 
 /**
- * Check if haptics are available
+ * Check if haptics are likely available
  */
 export function hapticsAvailable(): boolean {
     if (typeof window === 'undefined') return false;
-
-    // iOS 18+ with switch element support
-    if (isIOS()) return true;
-
-    // Android with vibration API
-    if (typeof navigator.vibrate === 'function') return true;
-
+    if (isIOS()) return true; // iOS 18+ should work
+    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') return true;
     return false;
 }
 
-/**
- * Convenience functions for common haptic patterns
- */
+// Convenience exports
 export const Haptics = {
     light: () => triggerHaptic('light'),
     medium: () => triggerHaptic('medium'),
