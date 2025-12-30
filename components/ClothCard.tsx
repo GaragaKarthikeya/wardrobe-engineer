@@ -68,6 +68,7 @@ export function ClothCard({ item, onToggle, onEdit, onDelete, onSelect, selected
                 onMouseDown={handleTouchStart}
                 onMouseUp={handleTouchEnd}
                 onMouseLeave={handleTouchEnd}
+                onContextMenu={(e) => e.preventDefault()}
                 className={`
                     relative rounded-xl overflow-hidden transition-all duration-200 aspect-square
                     bg-secondary-background

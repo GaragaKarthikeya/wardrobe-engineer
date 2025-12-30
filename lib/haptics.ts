@@ -13,27 +13,27 @@ export function triggerHaptic(style: HapticStyle = 'light') {
     switch (style) {
         case 'light':
             // Sharp, quick tap
-            window.navigator.vibrate(10);
+            window.navigator.vibrate(20);
             break;
         case 'medium':
             // Standard tap
-            window.navigator.vibrate(15);
+            window.navigator.vibrate(40);
             break;
         case 'heavy':
             // Firmer tap
-            window.navigator.vibrate(20);
+            window.navigator.vibrate(60);
             break;
         case 'selection':
-            // Very light tick for scrolling/sliders
-            window.navigator.vibrate(5);
+            // Very light tick
+            window.navigator.vibrate(15);
             break;
         case 'success':
             // Double tap pattern
-            window.navigator.vibrate([10, 30, 10]);
+            window.navigator.vibrate([30, 50, 30]);
             break;
         case 'error':
             // Long buzz
-            window.navigator.vibrate([30, 50, 30]);
+            window.navigator.vibrate([50, 60, 50, 60, 50]);
             break;
     }
 }
