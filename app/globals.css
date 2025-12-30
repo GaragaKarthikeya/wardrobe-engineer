@@ -1,147 +1,226 @@
 @import "tailwindcss";
 
-/* ============================================
-   WARDROBE ENGINEER - DESIGN SYSTEM
-   Fashion-forward, warm, premium mobile UI
-   ============================================ */
+@theme {
+  /* System Colors */
+  --color-system-background: #000000;
+  --color-secondary-background: #1c1c1e;
+  --color-tertiary-background: #2c2c2e;
+  --color-grouped-background: #000000;
+  --color-grouped-secondary: #1c1c1e;
 
+  /* Label Colors */
+  --color-label-primary: #FFFFFF;
+  --color-label-secondary: rgba(235, 235, 245, 0.6);
+  --color-label-tertiary: rgba(235, 235, 245, 0.3);
+  --color-label-quaternary: rgba(235, 235, 245, 0.18);
+
+  /* Separators */
+  --color-separator: rgba(84, 84, 88, 0.65);
+
+  /* Fills */
+  --color-fill-primary: rgba(120, 120, 128, 0.36);
+  --color-fill-secondary: rgba(120, 120, 128, 0.32);
+  --color-fill-tertiary: rgba(118, 118, 128, 0.24);
+
+  /* Semantic */
+  --color-tint: #0A84FF;
+  --color-green: #30D158;
+  --color-red: #FF453A;
+
+  /* Fonts */
+  --font-sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* Animations */
+  --animate-slide-up: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-fade-in: fadeIn 0.3s ease-out forwards;
+  --animate-scale-in: scaleIn 0.2s ease-out forwards;
+  --animate-pop: pop 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(100%);
+    }
+
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes scaleIn {
+    from {
+      transform: scale(0.95);
+      opacity: 0;
+    }
+
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  @keyframes pop {
+    0% {
+      transform: scale(1);
+    }
+
+    50% {
+      transform: scale(0.95);
+    }
+
+    100% {
+      transform: scale(1);
+    }
+  }
+}
+
+/* Custom Utilities & Resets */
 @layer base {
   :root {
     color-scheme: dark;
-
-    /* Color Palette - Warm Fashion Tones */
-    --color-bg: #0f0f0f;
-    --color-surface: #1a1a1a;
-    --color-surface-elevated: #242424;
-    --color-border: #2a2a2a;
-    --color-border-subtle: #1f1f1f;
-
-    --color-text: #fafafa;
-    --color-text-muted: #a3a3a3;
-    --color-text-subtle: #737373;
-
-    /* Accent - Warm Gold/Amber */
-    --color-accent: #f59e0b;
-    --color-accent-muted: rgba(245, 158, 11, 0.15);
-    --color-accent-text: #fbbf24;
-
-    /* Status Colors */
-    --color-clean: #22c55e;
-    --color-clean-muted: rgba(34, 197, 94, 0.15);
-    --color-dirty: #ef4444;
-    --color-dirty-muted: rgba(239, 68, 68, 0.15);
-
-    /* iOS Safe Areas */
-    --safe-top: env(safe-area-inset-top, 0px);
-    --safe-bottom: env(safe-area-inset-bottom, 0px);
-    --safe-left: env(safe-area-inset-left, 0px);
-    --safe-right: env(safe-area-inset-right, 0px);
-
-    /* Typography */
-    --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
-    --font-mono: 'SF Mono', 'Fira Code', monospace;
+    --safe-top: env(safe-area-inset-top, 20px);
+    --safe-bottom: env(safe-area-inset-bottom, 20px);
   }
 
   html {
-    font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
+    background: var(--color-system-background);
   }
 
   body {
-    background: var(--color-bg);
-    color: var(--color-text);
-    min-height: 100vh;
+    background-color: var(--color-system-background);
+    color: var(--color-label-primary);
+    font-family: var(--font-sans);
     min-height: 100dvh;
-    /* Dynamic viewport height for mobile */
-    overscroll-behavior: none;
-  }
-
-  /* Better text selection */
-  ::selection {
-    background: var(--color-accent-muted);
-    color: var(--color-accent-text);
+    overscroll-behavior-y: none;
+    user-select: none;
   }
 }
 
-@layer utilities {
+@layer components {
 
-  /* Safe area utilities */
-  .pt-safe {
-    padding-top: max(16px, var(--safe-top));
+  /* Layout Utilities */
+  .safe-top {
+    padding-top: max(20px, var(--safe-top));
   }
 
-  .pb-safe {
-    padding-bottom: max(16px, var(--safe-bottom));
+  .safe-bottom {
+    padding-bottom: max(20px, var(--safe-bottom));
   }
 
-  .px-safe {
-    padding-left: max(16px, var(--safe-left));
-    padding-right: max(16px, var(--safe-right));
+  /* Glassmorphism */
+  .glass {
+    background: rgba(28, 28, 30, 0.75);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-top: 0.5px solid rgba(84, 84, 88, 0.65);
   }
 
-  /* Hide scrollbar */
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+  /* Typography - Fixed classes */
+  .text-large-title {
+    font-size: 34px;
+    line-height: 41px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
   }
 
-  .scrollbar-hide::-webkit-scrollbar {
+  .text-title-1 {
+    font-size: 28px;
+    line-height: 34px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .text-title-2 {
+    font-size: 22px;
+    line-height: 28px;
+    font-weight: 700;
+  }
+
+  .text-title-3 {
+    font-size: 20px;
+    line-height: 25px;
+    font-weight: 600;
+  }
+
+  .text-headline {
+    font-size: 17px;
+    line-height: 22px;
+    font-weight: 600;
+  }
+
+  .text-body {
+    font-size: 17px;
+    line-height: 22px;
+    font-weight: 400;
+  }
+
+  .text-callout {
+    font-size: 16px;
+    line-height: 21px;
+    font-weight: 400;
+  }
+
+  .text-subheadline {
+    font-size: 15px;
+    line-height: 20px;
+    font-weight: 500;
+  }
+
+  .text-caption-1 {
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 400;
+  }
+
+  /* Components */
+  .ios-btn {
+    transition: opacity 0.2s;
+  }
+
+  .ios-btn:active {
+    opacity: 0.7;
+  }
+
+  .ios-card {
+    background-color: var(--color-secondary-background);
+    border-radius: 12px;
+  }
+
+  .ios-list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background-color: var(--color-secondary-background);
+    border-bottom: 0.5px solid var(--color-separator);
+    transition: background-color 0.2s;
+  }
+
+  .ios-list-item:active {
+    background-color: var(--color-fill-tertiary);
+  }
+
+  .ios-list-item:last-child {
+    border-bottom: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
 
-  /* Touch-friendly minimum sizes */
-  .touch-target {
-    min-height: 44px;
-    min-width: 44px;
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
-}
-
-/* Animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(16px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.2s ease-out forwards;
-}
-
-.animate-slide-up {
-  animation: slideUp 0.3s ease-out forwards;
-}
-
-.animate-scale-in {
-  animation: scaleIn 0.2s ease-out forwards;
 }

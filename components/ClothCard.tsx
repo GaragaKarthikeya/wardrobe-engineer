@@ -1,100 +1,161 @@
 "use client";
 
 import { ClothingItem } from "@/types";
-import { Check, X, Trash2, Edit3 } from "lucide-react";
+import { Check, Pencil, Trash2, CheckCircle, MoreHorizontal } from "lucide-react";
 import Image from "next/image";
+import { useState, useRef } from "react";
+import { triggerHaptic } from "@/lib/haptics";
 
-interface ClothCardProps {
+interface Props {
     item: ClothingItem;
-    onToggle: (id: string, currentStatus: boolean) => void;
-    onDelete?: (id: string) => void;
-    highlighted?: boolean;
-    isEditMode?: boolean;
+    onToggle: (id: string, clean: boolean) => void;
+    onEdit: (id: string) => void;
+    onDelete: (id: string) => void;
+    onSelect: (id: string) => void;
+    selected?: boolean;
+    selectMode?: boolean;
 }
 
-export function ClothCard({ item, onToggle, onDelete, highlighted, isEditMode }: ClothCardProps) {
+export function ClothCard({ item, onToggle, onEdit, onDelete, onSelect, selected, selectMode }: Props) {
+    const clean = item.is_clean;
+    const [showMenu, setShowMenu] = useState(false);
+    const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+    const didLongPress = useRef(false);
+
+    const handleTouchStart = () => {
+        didLongPress.current = false;
+        longPressTimer.current = setTimeout(() => {
+            didLongPress.current = true;
+            triggerHaptic('medium');
+            setShowMenu(true);
+        }, 500);
+    };
+
+    const handleTouchEnd = () => {
+        if (longPressTimer.current) {
+            clearTimeout(longPressTimer.current);
+        }
+    };
+
     const handleClick = () => {
-        onToggle(item.id, item.is_clean);
+        if (didLongPress.current) {
+            didLongPress.current = false;
+            return;
+        }
+
+        triggerHaptic('light');
+
+        if (selectMode) {
+            onSelect(item.id);
+        } else {
+            onToggle(item.id, clean);
+        }
+    };
+
+    const handleAction = (action: 'edit' | 'delete' | 'select') => {
+        setShowMenu(false);
+        if (action === 'edit') onEdit(item.id);
+        if (action === 'delete') onDelete(item.id);
+        if (action === 'select') onSelect(item.id);
     };
 
     return (
-        <div
-            onClick={handleClick}
-            className="relative aspect-square rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 active:scale-95"
-            style={{
-                border: `2px solid ${item.is_clean ? 'var(--color-clean)' : 'var(--color-dirty)'}`,
-                background: 'var(--color-surface)',
-                opacity: item.is_clean ? 1 : 0.6,
-                filter: item.is_clean ? 'none' : 'grayscale(0.4)'
-            }}
-        >
-            <Image
-                src={item.image_url}
-                alt={`${item.tags?.color || ''} ${item.tags?.sub_category || item.tags?.category || 'Clothing'}`}
-                fill
-                className="object-cover"
-                sizes="(max-width: 640px) 50vw, 33vw"
-            />
-
-            {/* Delete Overlay */}
-            {onDelete && (
-                <div
-                    className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 active:opacity-100 transition-opacity"
-                    style={{ background: 'var(--color-dirty-muted)' }}
-                >
-                    <div
-                        className="p-3 rounded-full"
-                        style={{ background: 'var(--color-dirty)' }}
-                    >
-                        <Trash2 size={20} className="text-white" />
-                    </div>
-                </div>
-            )}
-
-            {/* Edit Overlay */}
-            {isEditMode && !onDelete && (
-                <div
-                    className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 active:opacity-100 transition-opacity"
-                    style={{ background: 'var(--color-accent-muted)' }}
-                >
-                    <div
-                        className="p-3 rounded-full"
-                        style={{ background: 'var(--color-accent)' }}
-                    >
-                        <Edit3 size={20} className="text-black" />
-                    </div>
-                </div>
-            )}
-
-            {/* Status Badge */}
-            {!onDelete && !isEditMode && (
-                <div
-                    className="absolute top-2 right-2 p-1.5 rounded-full"
-                    style={{
-                        background: item.is_clean ? 'var(--color-clean-muted)' : 'var(--color-dirty-muted)',
-                        backdropFilter: 'blur(8px)'
-                    }}
-                >
-                    {item.is_clean ? (
-                        <Check size={12} strokeWidth={3} style={{ color: 'var(--color-clean)' }} />
-                    ) : (
-                        <X size={12} strokeWidth={3} style={{ color: 'var(--color-dirty)' }} />
-                    )}
-                </div>
-            )}
-
-            {/* Info Overlay */}
+        <>
             <div
-                className="absolute bottom-0 left-0 right-0 p-2.5"
-                style={{ background: 'linear-gradient(transparent, rgba(0,0,0,0.85))' }}
+                onClick={handleClick}
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
+                onMouseDown={handleTouchStart}
+                onMouseUp={handleTouchEnd}
+                onMouseLeave={handleTouchEnd}
+                className={`
+                    relative rounded-xl overflow-hidden transition-all duration-200 aspect-square
+                    bg-secondary-background
+                    ${selectMode ? 'active:opacity-100' : 'active:opacity-80 active:scale-[0.98]'}
+                    ${selected ? 'ring-2 ring-tint ring-offset-2 ring-offset-black' : ''}
+                    ${!clean ? 'opacity-60' : ''}
+                `}
             >
-                <p className="text-xs text-white font-medium truncate">
-                    {item.tags?.color} {item.tags?.sub_category || item.tags?.category}
-                </p>
-                {item.tags?.formality && (
-                    <p className="text-[10px] opacity-60 text-white">{item.tags.formality}</p>
+                <Image
+                    src={item.image_url}
+                    alt=""
+                    fill
+                    className={`object-cover transition-all ${clean ? '' : 'grayscale contrast-125'}`}
+                    sizes="50vw"
+                />
+
+                {/* Selection Overlay */}
+                {selectMode && (
+                    <div className="absolute inset-0 bg-black/20 flex items-start justify-end p-2">
+                        <div className={`
+                            w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all
+                            ${selected ? 'bg-tint border-tint' : 'bg-transparent border-white/60'}
+                        `}>
+                            {selected && <Check size={14} className="text-white" strokeWidth={3} />}
+                        </div>
+                    </div>
+                )}
+
+                {/* Status indicator */}
+                {!selectMode && (
+                    <div className={`
+                        absolute top-1.5 right-1.5 w-2 h-2 rounded-full shadow-sm
+                        border border-black/20
+                        ${clean ? 'bg-green' : 'bg-red'}
+                    `} />
                 )}
             </div>
-        </div>
+
+            {/* iOS Context Menu */}
+            {showMenu && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in"
+                    onClick={() => setShowMenu(false)}
+                >
+                    <div
+                        className="w-[250px] rounded-xl overflow-hidden bg-secondary-background/90 backdrop-blur-xl shadow-2xl animate-slide-up ring-1 ring-white/10"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="px-4 py-3 border-b border-separator/50 flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-lg relative overflow-hidden bg-tertiary-background">
+                                <Image src={item.image_url} alt="" fill className="object-cover" />
+                            </div>
+                            <div>
+                                <p className="text-subheadline font-semibold text-label-primary">
+                                    {item.tags?.category}
+                                </p>
+                                <p className="text-caption-1 text-label-secondary">
+                                    {clean ? "Clean" : "Laundry"}
+                                </p>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={() => handleAction('edit')}
+                            className="w-full flex items-center justify-between px-4 py-3.5 active:bg-fill-tertiary transition-colors border-b border-separator/50"
+                        >
+                            <span className="text-body text-label-primary">Edit Item</span>
+                            <Pencil size={18} className="text-label-primary" />
+                        </button>
+
+                        <button
+                            onClick={() => handleAction('select')}
+                            className="w-full flex items-center justify-between px-4 py-3.5 active:bg-fill-tertiary transition-colors border-b border-separator/50"
+                        >
+                            <span className="text-body text-label-primary">Select...</span>
+                            <CheckCircle size={18} className="text-label-primary" />
+                        </button>
+
+                        <button
+                            onClick={() => handleAction('delete')}
+                            className="w-full flex items-center justify-between px-4 py-3.5 active:bg-fill-tertiary transition-colors group"
+                        >
+                            <span className="text-body text-red group-active:opacity-70">Delete</span>
+                            <Trash2 size={18} className="text-red group-active:opacity-70" />
+                        </button>
+                    </div>
+                </div>
+            )}
+        </>
     );
 }

@@ -2,185 +2,125 @@
 
 import { useState, useRef } from "react";
 import { ClothesGrid } from "@/components/ClothesGrid";
-import { Send, Sparkles, ImagePlus, Grid3X3, Wand2, Loader2, ChevronRight } from "lucide-react";
+import { ArrowUp, Sparkles, Plus, LayoutGrid, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { analyzeImageAction, recommendOutfitAction } from "./actions";
 import { ClothingItem } from "@/types";
 import Image from "next/image";
 import { useToast } from "@/components/Toast";
 import { convertToJpeg, SUPPORTED_FORMATS } from "@/lib/image";
+import { triggerHaptic } from "@/lib/haptics";
 
-type Tab = "closet" | "stylist";
-
-// Quick prompts for the stylist
-const QUICK_PROMPTS = [
-  "Office meeting",
-  "Casual weekend",
-  "Date night",
-  "Workout",
-  "Brunch",
-];
+type View = "closet" | "stylist";
 
 export default function Home() {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<Tab>("closet");
+  const [view, setView] = useState<View>("closet");
 
-  // Stylist State
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [recommendation, setRecommendation] = useState<{
-    selected_item_ids: string[];
-    reasoning: string;
-  } | null>(null);
-  const [outfitItems, setOutfitItems] = useState<ClothingItem[]>([]);
+  const [prompt, setPrompt] = useState("");
+  const [thinking, setThinking] = useState(false);
+  const [result, setResult] = useState<{ items: ClothingItem[]; reason: string } | null>(null);
 
-  // Upload State
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-  const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0 });
+  const [progress, setProgress] = useState({ done: 0, total: 0 });
 
-  // Process single image
-  const processSingleImage = async (file: File): Promise<any> => {
-    const jpegBlob = await convertToJpeg(file);
-    const jpegFile = new File([jpegBlob], `${Date.now()}.jpg`, { type: 'image/jpeg' });
+  const upload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    triggerHaptic('medium');
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
 
-    const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
-    const { error: uploadError } = await supabase.storage.from("wardrobe").upload(filename, jpegFile);
-    if (uploadError) throw uploadError;
-
-    const publicUrl = supabase.storage.from("wardrobe").getPublicUrl(filename).data.publicUrl;
-
-    const formData = new FormData();
-    formData.append("file", jpegFile);
-    const metadata = await analyzeImageAction(formData);
-
-    const { error: dbError } = await supabase.from("items").insert({
-      image_url: publicUrl,
-      tags: metadata,
-      is_clean: true,
-    });
-    if (dbError) throw dbError;
-    return metadata;
-  };
-
-  // Batch upload
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files?.length) return;
-
-    const fileArray = Array.from(files);
     setUploading(true);
-    setBatchProgress({ current: 0, total: fileArray.length });
+    setProgress({ done: 0, total: files.length });
 
-    let success = 0, fail = 0;
-    for (let i = 0; i < fileArray.length; i++) {
-      setBatchProgress({ current: i + 1, total: fileArray.length });
+    let ok = 0;
+    for (let i = 0; i < files.length; i++) {
+      setProgress({ done: i + 1, total: files.length });
       try {
-        await processSingleImage(fileArray[i]);
-        success++;
-      } catch (e) {
-        fail++;
+        const blob = await convertToJpeg(files[i]);
+        const file = new File([blob], `${Date.now()}.jpg`, { type: 'image/jpeg' });
+        const name = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
+
+        await supabase.storage.from("wardrobe").upload(name, file);
+        const url = supabase.storage.from("wardrobe").getPublicUrl(name).data.publicUrl;
+
+        const form = new FormData();
+        form.append("file", file);
+        const tags = await analyzeImageAction(form);
+
+        await supabase.from("items").insert({ image_url: url, tags, is_clean: true });
+        ok++;
+        triggerHaptic('success');
+      } catch (err) {
+        console.error(err);
+        triggerHaptic('error');
       }
     }
 
-    if (success) toast(`Added ${success} item${success > 1 ? 's' : ''}`, "success");
-    if (fail) toast(`${fail} failed`, "error");
-
+    if (ok) toast(`${ok} item${ok > 1 ? 's' : ''} added`, "success");
     setUploading(false);
-    setBatchProgress({ current: 0, total: 0 });
-    if (fileInputRef.current) fileInputRef.current.value = "";
-    if (success) window.location.reload();
+    if (fileRef.current) fileRef.current.value = "";
+    if (ok) window.location.reload();
   };
 
-  // Stylist
-  const handleAsk = async (prompt?: string) => {
-    const query = prompt || input;
-    if (!query.trim()) return;
+  const ask = async () => {
+    if (!prompt.trim()) return;
+    triggerHaptic('medium');
 
-    setLoading(true);
-    setRecommendation(null);
-    setOutfitItems([]);
-    setInput(query);
+    setThinking(true);
+    setResult(null);
 
     try {
-      const { data: inventory } = await supabase.from("items").select("*");
-      if (!inventory?.length) {
-        toast("Add clothes first!", "info");
-        setLoading(false);
+      const { data: inv } = await supabase.from("items").select("*");
+      if (!inv?.length) {
+        toast("Add items first", "info");
+        setThinking(false);
         return;
       }
 
-      const result = await recommendOutfitAction(query, inventory);
-      setRecommendation(result);
+      const res = await recommendOutfitAction(prompt, inv);
 
-      if (result.selected_item_ids?.length) {
-        const { data } = await supabase.from("items").select("*").in("id", result.selected_item_ids);
-        setOutfitItems(data || []);
+      if (res.selected_item_ids?.length) {
+        const { data } = await supabase.from("items").select("*").in("id", res.selected_item_ids);
+        setResult({ items: data || [], reason: res.reasoning });
+        triggerHaptic('success');
+      } else {
+        setResult({ items: [], reason: res.reasoning });
+        triggerHaptic('light');
       }
-    } catch (e) {
+    } catch (err) {
       toast("Something went wrong", "error");
+      triggerHaptic('error');
     } finally {
-      setLoading(false);
+      setThinking(false);
     }
   };
 
   return (
-    <div
-      className="min-h-screen min-h-[100dvh] flex flex-col"
-      style={{ background: 'var(--color-bg)' }}
-    >
-      {/* Header */}
-      <header
-        className="sticky top-0 z-30 pt-safe px-safe backdrop-blur-xl"
-        style={{
-          background: 'rgba(15, 15, 15, 0.85)',
-          borderBottom: '1px solid var(--color-border-subtle)'
-        }}
-      >
-        <div className="flex items-center justify-between py-3">
-          <div>
-            <h1
-              className="text-lg font-semibold tracking-tight"
-              style={{ color: 'var(--color-accent-text)' }}
-            >
-              Wardrobe
-            </h1>
-          </div>
+    <div className="min-h-[100dvh] flex flex-col bg-system-background">
+      {/* Navigation Bar - iOS Large Title Style */}
+      <header className="safe-top px-4 sticky top-0 z-40 bg-system-background/80 backdrop-blur-xl border-b border-separator/0 transition-all">
+        <div className="flex items-center justify-between py-2 min-h-[52px]">
+          <h1 className="text-large-title text-label-primary tracking-tight">
+            {view === "closet" ? "Closet" : "Stylist"}
+          </h1>
 
-          {activeTab === "closet" && (
+          {view === "closet" && (
             <button
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => { fileRef.current?.click(); triggerHaptic('light'); }}
               disabled={uploading}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium touch-target transition-all active:scale-95"
-              style={{
-                background: uploading ? 'var(--color-accent-muted)' : 'var(--color-surface-elevated)',
-                color: uploading ? 'var(--color-accent-text)' : 'var(--color-text)'
-              }}
+              className="ios-btn flex items-center gap-1 text-tint font-semibold text-[17px]"
             >
-              {uploading ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  <span>{batchProgress.current}/{batchProgress.total}</span>
-                </>
-              ) : (
-                <>
-                  <ImagePlus size={16} />
-                  <span>Add</span>
-                </>
-              )}
+              {uploading ? <Loader2 size={18} className="animate-spin" /> : <Plus size={22} />}
             </button>
           )}
         </div>
 
-        {/* Progress bar */}
-        {uploading && batchProgress.total > 1 && (
-          <div className="h-0.5 -mb-px" style={{ background: 'var(--color-surface)' }}>
+        {uploading && (
+          <div className="h-0.5 rounded-full overflow-hidden mb-2 bg-fill-tertiary mx-1">
             <div
-              className="h-full transition-all duration-300"
-              style={{
-                width: `${(batchProgress.current / batchProgress.total) * 100}%`,
-                background: 'var(--color-accent)'
-              }}
+              className="h-full transition-all duration-300 bg-tint"
+              style={{ width: `${(progress.done / progress.total) * 100}%` }}
             />
           </div>
         )}
@@ -188,147 +128,90 @@ export default function Home() {
 
       <input
         type="file"
-        ref={fileInputRef}
+        ref={fileRef}
         className="hidden"
         accept={SUPPORTED_FORMATS}
         multiple
-        onChange={handleFileChange}
+        onChange={upload}
       />
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto px-safe">
-        {activeTab === "closet" && (
-          <div className="py-4">
+      {/* Content */}
+      <main className="flex-1 overflow-auto">
+        {view === "closet" && (
+          <div className="px-4 pb-[120px] pt-4">
             <ClothesGrid />
           </div>
         )}
 
-        {activeTab === "stylist" && (
-          <div className="py-6 flex flex-col min-h-full">
-            {!recommendation ? (
-              /* Empty State */
-              <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
-                <div
-                  className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
-                  style={{ background: 'var(--color-accent-muted)' }}
-                >
-                  <Wand2 size={28} style={{ color: 'var(--color-accent)' }} />
+        {view === "stylist" && (
+          <div className="flex flex-col h-full px-4 pb-[120px] pt-4">
+            {!result ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center px-8 animate-fade-in">
+                <div className="w-[70px] h-[70px] rounded-full flex items-center justify-center mb-6 bg-fill-tertiary">
+                  <Sparkles size={32} className="text-label-secondary" />
                 </div>
-                <h2 className="text-xl font-semibold mb-2">AI Stylist</h2>
-                <p className="text-sm mb-6" style={{ color: 'var(--color-text-muted)' }}>
-                  Tell me the occasion and I'll pick the perfect outfit
+                <p className="text-title-2 mb-2 text-label-primary">
+                  What are you dressing for?
                 </p>
-
-                {/* Quick Prompts */}
-                <div className="flex flex-wrap gap-2 justify-center max-w-sm">
-                  {QUICK_PROMPTS.map((prompt) => (
-                    <button
-                      key={prompt}
-                      onClick={() => handleAsk(prompt)}
-                      disabled={loading}
-                      className="px-4 py-2.5 rounded-full text-sm font-medium transition-all active:scale-95"
-                      style={{
-                        background: 'var(--color-surface-elevated)',
-                        color: 'var(--color-text-muted)'
-                      }}
-                    >
-                      {prompt}
-                    </button>
-                  ))}
-                </div>
+                <p className="text-body text-label-secondary">
+                  Describe the occasion or weather, and I'll suggest an outfit from your clean items.
+                </p>
               </div>
             ) : (
-              /* Result */
-              <div className="flex-1 px-4 animate-fade-in">
-                <div
-                  className="text-xs font-medium uppercase tracking-wider mb-3"
-                  style={{ color: 'var(--color-accent)' }}
-                >
-                  For "{input}"
-                </div>
+              <div className="flex-1 pt-4 animate-slide-up">
+                <p className="text-caption-1 font-semibold uppercase tracking-wider mb-4 text-label-tertiary pl-1">
+                  Suggested Outfit
+                </p>
 
-                {/* Outfit Images */}
-                {outfitItems.length > 0 && (
-                  <div className="flex gap-3 mb-4 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
-                    {outfitItems.map((item) => (
+                {result.items.length > 0 && (
+                  <div className="flex gap-4 overflow-x-auto pb-6 no-scrollbar -mx-4 px-4 snap-x">
+                    {result.items.map(item => (
                       <div
                         key={item.id}
-                        className="relative w-28 h-28 flex-shrink-0 rounded-2xl overflow-hidden"
-                        style={{
-                          border: '2px solid var(--color-accent)',
-                          boxShadow: '0 8px 24px rgba(245, 158, 11, 0.15)'
-                        }}
+                        className="relative w-[140px] aspect-square flex-shrink-0 rounded-2xl overflow-hidden bg-secondary-background snap-center shadow-lg border border-white/5 animate-pop"
                       >
-                        <Image
-                          src={item.image_url}
-                          alt={item.tags?.sub_category || "Item"}
-                          fill
-                          className="object-cover"
-                        />
-                        <div
-                          className="absolute bottom-0 left-0 right-0 px-2 py-1.5"
-                          style={{ background: 'linear-gradient(transparent, rgba(0,0,0,0.8))' }}
-                        >
-                          <p className="text-[10px] text-white font-medium truncate">
-                            {item.tags?.sub_category || item.tags?.category}
-                          </p>
-                        </div>
+                        <Image src={item.image_url} alt="" fill className="object-cover" />
                       </div>
                     ))}
                   </div>
                 )}
 
-                {/* Reasoning */}
-                <div
-                  className="rounded-2xl p-4"
-                  style={{
-                    background: 'var(--color-surface)',
-                    border: '1px solid var(--color-border)'
-                  }}
-                >
-                  <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
-                    {recommendation.reasoning}
+                <div className="p-5 rounded-[18px] mt-2 bg-secondary-background">
+                  <p className="text-body text-label-primary leading-relaxed">
+                    {result.reason}
                   </p>
                 </div>
 
-                <button
-                  onClick={() => { setRecommendation(null); setInput(""); }}
-                  className="mt-4 text-sm font-medium"
-                  style={{ color: 'var(--color-accent)' }}
-                >
-                  Try another occasion →
-                </button>
+                <div className="flex justify-center mt-6">
+                  <button
+                    onClick={() => { setResult(null); setPrompt(""); triggerHaptic('light'); }}
+                    className="ios-btn text-body font-medium text-tint"
+                  >
+                    Try Another
+                  </button>
+                </div>
               </div>
             )}
 
-            {/* Input Bar */}
-            <div
-              className="mt-auto pt-4 pb-2"
-              style={{ borderTop: '1px solid var(--color-border-subtle)' }}
-            >
-              <div className="flex gap-2">
+            {/* Compose Bar */}
+            <div className="mt-auto pt-4">
+              <div className="flex gap-3 p-1.5 pl-4 rounded-[22px] bg-secondary-background items-center ring-1 ring-white/10 focus-within:ring-tint/50 transition-all">
                 <input
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && !loading && handleAsk()}
+                  value={prompt}
+                  onChange={e => setPrompt(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && !thinking && ask()}
                   placeholder="Describe the occasion..."
-                  className="flex-1 px-4 py-3.5 rounded-2xl text-sm outline-none"
-                  style={{
-                    background: 'var(--color-surface)',
-                    border: '1px solid var(--color-border)',
-                    color: 'var(--color-text)'
-                  }}
+                  className="flex-1 py-2 text-body bg-transparent outline-none text-label-primary placeholder:text-label-tertiary"
                 />
                 <button
-                  onClick={() => handleAsk()}
-                  disabled={loading || !input.trim()}
-                  className="w-12 h-12 rounded-2xl flex items-center justify-center transition-all active:scale-95 disabled:opacity-40"
-                  style={{ background: 'var(--color-accent)' }}
+                  onClick={ask}
+                  disabled={thinking || !prompt.trim()}
+                  className="w-[36px] h-[36px] rounded-full flex items-center justify-center bg-tint disabled:opacity-30 transition-all active:scale-95"
                 >
-                  {loading ? (
-                    <Loader2 size={18} className="animate-spin text-black" />
+                  {thinking ? (
+                    <Loader2 size={16} className="animate-spin text-white" />
                   ) : (
-                    <Send size={18} className="text-black" />
+                    <ArrowUp size={18} className="text-white" strokeWidth={3} />
                   )}
                 </button>
               </div>
@@ -337,32 +220,38 @@ export default function Home() {
         )}
       </main>
 
-      {/* Bottom Navigation */}
-      <nav
-        className="sticky bottom-0 pb-safe px-safe"
-        style={{
-          background: 'var(--color-bg)',
-          borderTop: '1px solid var(--color-border-subtle)'
-        }}
-      >
-        <div className="flex">
-          <button
-            onClick={() => setActiveTab("closet")}
-            className="flex-1 flex flex-col items-center py-3 gap-1 touch-target transition-colors"
-            style={{ color: activeTab === "closet" ? 'var(--color-accent)' : 'var(--color-text-subtle)' }}
+      {/* Tab Bar - iOS Style Glass */}
+      <nav className="fixed bottom-0 left-0 right-0 glass pb-[calc(20px+env(safe-area-inset-bottom))] pt-2 px-6 z-50 flex justify-around">
+        <button
+          onClick={() => { setView("closet"); triggerHaptic('light'); }}
+          className="flex flex-col items-center gap-1 min-w-[64px] ios-btn"
+        >
+          <LayoutGrid
+            size={24}
+            className={view === "closet" ? "text-tint" : "text-label-tertiary"}
+            strokeWidth={view === "closet" ? 2.5 : 2}
+          />
+          <span
+            className={`text-[10px] font-medium ${view === "closet" ? "text-tint" : "text-label-tertiary"}`}
           >
-            <Grid3X3 size={22} />
-            <span className="text-[10px] font-medium">Closet</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("stylist")}
-            className="flex-1 flex flex-col items-center py-3 gap-1 touch-target transition-colors"
-            style={{ color: activeTab === "stylist" ? 'var(--color-accent)' : 'var(--color-text-subtle)' }}
+            Closet
+          </span>
+        </button>
+        <button
+          onClick={() => { setView("stylist"); triggerHaptic('light'); }}
+          className="flex flex-col items-center gap-1 min-w-[64px] ios-btn"
+        >
+          <Sparkles
+            size={24}
+            className={view === "stylist" ? "text-tint" : "text-label-tertiary"}
+            fill={view === "stylist" ? "currentColor" : "none"}
+          />
+          <span
+            className={`text-[10px] font-medium ${view === "stylist" ? "text-tint" : "text-label-tertiary"}`}
           >
-            <Wand2 size={22} />
-            <span className="text-[10px] font-medium">Stylist</span>
-          </button>
-        </div>
+            Stylist
+          </span>
+        </button>
       </nav>
     </div>
   );

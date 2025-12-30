@@ -45,7 +45,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#14b8a6",
+  themeColor: "#f59e0b",
 };
 
 export default function RootLayout({
@@ -54,9 +54,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <body
-        className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased bg-zinc-950 text-zinc-100`}
+        className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}
       >
         <ToastProvider>
           {children}

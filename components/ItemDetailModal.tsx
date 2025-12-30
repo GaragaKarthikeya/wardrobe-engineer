@@ -2,179 +2,157 @@
 
 import { useState } from "react";
 import { ClothingItem } from "@/types";
-import { X, Save, Loader2 } from "lucide-react";
+import { Loader2, Check } from "lucide-react";
 import Image from "next/image";
 import { updateItemTagsAction } from "@/app/actions";
 import { useToast } from "./Toast";
+import { triggerHaptic } from "@/lib/haptics";
 
-interface ItemDetailModalProps {
+interface Props {
     item: ClothingItem;
     onClose: () => void;
     onUpdate: (id: string, tags: any) => void;
 }
 
 const CATEGORIES = ["Top", "Bottom", "Shoe", "Outerwear", "Accessory"];
-const FORMALITIES = ["Casual", "Smart Casual", "Business", "Formal"];
-const SEASONS = ["Spring", "Summer", "Fall", "Winter"];
+const FORMALITY = ["Casual", "Smart Casual", "Business", "Formal"];
 
-export function ItemDetailModal({ item, onClose, onUpdate }: ItemDetailModalProps) {
+export function ItemDetailModal({ item, onClose, onUpdate }: Props) {
     const { toast } = useToast();
     const [saving, setSaving] = useState(false);
     const [tags, setTags] = useState(item.tags || {});
 
-    const handleSave = async () => {
+    const save = async () => {
+        triggerHaptic('medium');
         setSaving(true);
         try {
             await updateItemTagsAction(item.id, tags);
             onUpdate(item.id, tags);
-            toast("Saved!", "success");
+            triggerHaptic('success');
+            toast("Saved", "success");
             onClose();
         } catch (e: any) {
+            triggerHaptic('error');
             toast(e.message, "error");
         } finally {
             setSaving(false);
         }
     };
 
-    const updateTag = (key: string, value: any) => setTags((prev: any) => ({ ...prev, [key]: value }));
-
-    const toggleArray = (key: string, value: string) => {
-        setTags((prev: any) => {
-            const arr = prev[key] || [];
-            return { ...prev, [key]: arr.includes(value) ? arr.filter((v: string) => v !== value) : [...arr, value] };
-        });
+    const set = (k: string, v: any) => {
+        triggerHaptic('selection');
+        setTags(p => ({ ...p, [k]: v }));
     };
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-end justify-center"
-            style={{ background: 'rgba(0,0,0,0.7)' }}
+            className="fixed inset-0 z-50 flex items-end bg-black/40 backdrop-blur-sm transition-all animate-fade-in"
             onClick={onClose}
         >
             <div
-                className="w-full max-w-lg max-h-[85vh] rounded-t-3xl overflow-hidden animate-slide-up"
-                style={{ background: 'var(--color-surface)' }}
-                onClick={(e) => e.stopPropagation()}
+                className="w-full bg-grouped-secondary rounded-t-[20px] overflow-hidden animate-slide-up shadow-2xl ring-1 ring-white/10"
+                onClick={e => e.stopPropagation()}
             >
-                {/* Image Header */}
-                <div className="relative h-40" style={{ background: 'var(--color-bg)' }}>
-                    <Image
-                        src={item.image_url}
-                        alt="Item"
-                        fill
-                        className="object-cover"
-                    />
-                    <div
-                        className="absolute inset-0"
-                        style={{ background: 'linear-gradient(transparent 50%, var(--color-surface))' }}
-                    />
+                {/* Drag Handle */}
+                <div className="w-full h-6 bg-grouped-secondary flex items-center justify-center pt-2">
+                    <div className="w-9 h-1 rounded-full bg-fill-tertiary" />
+                </div>
+
+                {/* Header */}
+                <div className="flex items-center justify-between px-4 pb-4 bg-grouped-secondary z-10 relative">
                     <button
                         onClick={onClose}
-                        className="absolute top-4 right-4 p-2.5 rounded-full"
-                        style={{ background: 'rgba(0,0,0,0.5)' }}
+                        className="text-body text-tint active:opacity-50"
                     >
-                        <X size={18} style={{ color: 'var(--color-text)' }} />
+                        Cancel
                     </button>
-                </div>
-
-                {/* Content */}
-                <div className="p-5 space-y-5 overflow-y-auto max-h-[50vh]">
-                    {/* Color */}
-                    <div>
-                        <label className="text-xs font-medium uppercase tracking-wider mb-2 block" style={{ color: 'var(--color-text-subtle)' }}>
-                            Color
-                        </label>
-                        <input
-                            type="text"
-                            value={tags.color || ""}
-                            onChange={(e) => updateTag("color", e.target.value)}
-                            className="w-full px-4 py-3 rounded-xl text-sm outline-none"
-                            style={{
-                                background: 'var(--color-bg)',
-                                border: '1px solid var(--color-border)',
-                                color: 'var(--color-text)'
-                            }}
-                        />
-                    </div>
-
-                    {/* Category */}
-                    <div>
-                        <label className="text-xs font-medium uppercase tracking-wider mb-2 block" style={{ color: 'var(--color-text-subtle)' }}>
-                            Category
-                        </label>
-                        <div className="flex flex-wrap gap-2">
-                            {CATEGORIES.map((cat) => (
-                                <button
-                                    key={cat}
-                                    onClick={() => updateTag("category", cat)}
-                                    className="px-4 py-2.5 rounded-full text-xs font-medium transition-all active:scale-95"
-                                    style={{
-                                        background: tags.category === cat ? 'var(--color-accent)' : 'var(--color-bg)',
-                                        color: tags.category === cat ? '#000' : 'var(--color-text-muted)'
-                                    }}
-                                >
-                                    {cat}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Formality */}
-                    <div>
-                        <label className="text-xs font-medium uppercase tracking-wider mb-2 block" style={{ color: 'var(--color-text-subtle)' }}>
-                            Formality
-                        </label>
-                        <div className="flex flex-wrap gap-2">
-                            {FORMALITIES.map((f) => (
-                                <button
-                                    key={f}
-                                    onClick={() => updateTag("formality", f)}
-                                    className="px-4 py-2.5 rounded-full text-xs font-medium transition-all active:scale-95"
-                                    style={{
-                                        background: tags.formality === f ? 'var(--color-accent)' : 'var(--color-bg)',
-                                        color: tags.formality === f ? '#000' : 'var(--color-text-muted)'
-                                    }}
-                                >
-                                    {f}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Seasons */}
-                    <div>
-                        <label className="text-xs font-medium uppercase tracking-wider mb-2 block" style={{ color: 'var(--color-text-subtle)' }}>
-                            Seasons
-                        </label>
-                        <div className="flex flex-wrap gap-2">
-                            {SEASONS.map((s) => (
-                                <button
-                                    key={s}
-                                    onClick={() => toggleArray("seasons", s)}
-                                    className="px-4 py-2.5 rounded-full text-xs font-medium transition-all active:scale-95"
-                                    style={{
-                                        background: (tags.seasons || []).includes(s) ? 'var(--color-accent)' : 'var(--color-bg)',
-                                        color: (tags.seasons || []).includes(s) ? '#000' : 'var(--color-text-muted)'
-                                    }}
-                                >
-                                    {s}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Save Button */}
-                <div className="p-5 pb-safe" style={{ borderTop: '1px solid var(--color-border-subtle)' }}>
+                    <span className="text-headline font-semibold text-label-primary">
+                        Edit Item
+                    </span>
                     <button
-                        onClick={handleSave}
+                        onClick={save}
                         disabled={saving}
-                        className="w-full py-4 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-98 disabled:opacity-50"
-                        style={{ background: 'var(--color-accent)', color: '#000' }}
+                        className="text-headline font-semibold text-tint disabled:opacity-50 min-w-[40px] flex justify-end"
                     >
-                        {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-                        {saving ? "Saving..." : "Save Changes"}
+                        {saving ? <Loader2 size={20} className="animate-spin" /> : "Done"}
                     </button>
+                </div>
+
+                {/* Content Scrollable */}
+                <div className="max-h-[85vh] overflow-y-auto pb-safe-bottom bg-grouped-background">
+
+                    {/* Image Header */}
+                    <div className="py-6 flex justify-center bg-grouped-background">
+                        <div className="relative w-32 h-32 rounded-2xl overflow-hidden shadow-lg ring-1 ring-white/10">
+                            <Image src={item.image_url} alt="" fill className="object-cover" />
+                        </div>
+                    </div>
+
+                    <div className="space-y-6 px-4 pb-8">
+                        {/* Section: Color */}
+                        <div>
+                            <span className="text-caption-1 uppercase text-label-secondary pl-4 mb-2 block tracking-wider">
+                                Color
+                            </span>
+                            <div className="ios-card overflow-hidden">
+                                <div className="ios-list-item">
+                                    <span className="text-body text-label-primary">Color Name</span>
+                                    <input
+                                        type="text"
+                                        value={tags.color || ""}
+                                        onChange={e => set("color", e.target.value)}
+                                        placeholder="e.g. Navy Blue"
+                                        className="text-body text-label-secondary text-right bg-transparent outline-none placeholder:text-label-tertiary"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Section: Category */}
+                        <div>
+                            <span className="text-caption-1 uppercase text-label-secondary pl-4 mb-2 block tracking-wider">
+                                Category
+                            </span>
+                            <div className="flex p-0.5 rounded-[9px] bg-fill-tertiary overflow-x-auto">
+                                {CATEGORIES.slice(0, 4).map(c => {
+                                    const isSelected = tags.category === c;
+                                    return (
+                                        <button
+                                            key={c}
+                                            onClick={() => set("category", c)}
+                                            className={`flex-1 py-[6px] rounded-[7px] text-[13px] font-medium whitespace-nowrap px-2 transition-all ${isSelected
+                                                    ? "bg-secondary-background text-label-primary shadow-sm"
+                                                    : "text-label-secondary"
+                                                }`}
+                                        >
+                                            {c}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Section: Formality */}
+                        <div>
+                            <span className="text-caption-1 uppercase text-label-secondary pl-4 mb-2 block tracking-wider">
+                                Formality
+                            </span>
+                            <div className="ios-card overflow-hidden">
+                                {FORMALITY.map((f) => (
+                                    <button
+                                        key={f}
+                                        onClick={() => set("formality", f)}
+                                        className="w-full flex items-center justify-between py-3 px-4 bg-secondary-background active:bg-fill-tertiary transition-colors border-b border-separator/50 last:border-0"
+                                    >
+                                        <span className="text-body text-label-primary">{f}</span>
+                                        {tags.formality === f && (
+                                            <Check size={18} className="text-tint" strokeWidth={2.5} />
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
