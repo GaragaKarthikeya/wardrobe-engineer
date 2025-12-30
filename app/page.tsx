@@ -21,8 +21,8 @@ const askStylist = async (items: any[], prompt: string) => {
     .map((id: string) => items.find(i => i.id === id))
     .filter(Boolean);
 
-  return { 
-    reasoning: res.reasoning, 
+  return {
+    reasoning: res.reasoning,
     items: recommendedItems,
     outfit_type: res.outfit_type,
     logic: res.logic,
