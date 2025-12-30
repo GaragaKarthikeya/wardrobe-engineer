@@ -1,7 +1,16 @@
 "use server";
 
+import { createClient } from '@supabase/supabase-js';
+
 // Model and Endpoint Config
 const MODEL = "gemini-3-flash-preview";
+
+// Supabase client for server actions
+function getSupabase() {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    return createClient(url, key);
+}
 
 // Helper: Build URL at runtime
 function getApiUrl(): string {
@@ -13,10 +22,11 @@ function getApiUrl(): string {
 }
 
 // =====================
-// VISION: Analyze Clothing
+// VISION: Analyze Clothing & Upload to Supabase
 // =====================
 export async function analyzeImageAction(formData: FormData) {
     const url = getApiUrl();
+    const supabase = getSupabase();
 
     const file = formData.get("file") as File;
     if (!file) throw new Error("No file provided");
@@ -48,6 +58,7 @@ Return a JSON object with this EXACT schema:
 Be accurate about the category. Shirts, T-shirts, Polos = "Top". Jeans, Pants = "Bottom".`;
 
     try {
+        // 1. Analyze with Gemini
         const response = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -78,10 +89,48 @@ Be accurate about the category. Shirts, T-shirts, Polos = "Top". Jeans, Pants = 
         const data = await response.json();
         const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
         const jsonStr = text?.replace(/```json|```/g, "").trim();
-        return JSON.parse(jsonStr || "{}");
+        const tags = JSON.parse(jsonStr || "{}");
+
+        // 2. Upload image to Supabase Storage
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
+        const { error: uploadError } = await supabase.storage
+            .from('wardrobe')
+            .upload(fileName, Buffer.from(arrayBuffer), {
+                contentType: 'image/jpeg',
+                upsert: false
+            });
+
+        if (uploadError) {
+            throw new Error(`Storage Error: ${uploadError.message}`);
+        }
+
+        // 3. Get public URL
+        const { data: urlData } = supabase.storage
+            .from('wardrobe')
+            .getPublicUrl(fileName);
+
+        const image_url = urlData.publicUrl;
+
+        // 4. Insert into database
+        const { data: item, error: dbError } = await supabase
+            .from('items')
+            .insert({
+                image_url,
+                tags,
+                is_clean: true
+            })
+            .select()
+            .single();
+
+        if (dbError) {
+            throw new Error(`Database Error: ${dbError.message}`);
+        }
+
+        // 5. Return complete ClothingItem
+        return item;
 
     } catch (error: any) {
-        console.error("Gemini Vision Error:", error);
+        console.error("Analyze & Upload Error:", error);
         throw new Error(error.message);
     }
 }

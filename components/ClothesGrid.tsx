@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { ClothingItem } from "@/types";
 import { ClothCard } from "./ClothCard";
 import { ItemDetailModal } from "./ItemDetailModal";
-import { X, Trash2, SlidersHorizontal, RefreshCw } from "lucide-react";
+import { X, Trash2, SlidersHorizontal, RefreshCw, Shirt } from "lucide-react";
 import { useToast } from "./Toast";
 import { triggerHaptic } from "@/lib/haptics";
 import { FilterModal } from "./FilterModal";
@@ -164,13 +164,13 @@ export function ClothesGrid({ showFilters, setShowFilters, refreshTrigger = 0 }:
         return (
             <div className="text-center py-24 px-6 animate-fade-in">
                 <div className="w-16 h-16 rounded-full border border-separator mx-auto mb-4 flex items-center justify-center">
-                    <SlidersHorizontal size={28} className="text-label-tertiary" />
+                    <Shirt size={28} className="text-label-tertiary" />
                 </div>
                 <p className="text-title-3 mb-2 text-label-primary font-semibold">
-                    No Items Yet
+                    Your Closet is Empty
                 </p>
                 <p className="text-body text-label-secondary max-w-[260px] mx-auto">
-                    Tap the + button to add your first piece of clothing.
+                    Tap + to add your first piece
                 </p>
             </div>
         );
@@ -195,7 +195,7 @@ export function ClothesGrid({ showFilters, setShowFilters, refreshTrigger = 0 }:
                         >
                             <SlidersHorizontal size={16} />
                             <span className="text-[15px] font-medium">
-                                {filters.category === 'all' ? 'Filter' : filters.category}
+                                {hasActiveFilters ? `${filtered.length}` : 'Filter'}
                             </span>
                         </button>
 
@@ -249,20 +249,26 @@ export function ClothesGrid({ showFilters, setShowFilters, refreshTrigger = 0 }:
                 </div>
             )}
 
-            {/* Hint text */}
+            {/* Hint text - subtle and positioned at top */}
             {!selectMode && items.length > 0 && (
-                <p className="text-caption-1 text-center mb-5 text-label-tertiary font-medium animate-fade-in">
-                    Tap to toggle • Long press for options
+                <p className="text-[11px] text-center text-white/25 font-medium tracking-wide uppercase mb-4">
+                    Tap to toggle clean · Hold for menu
                 </p>
             )}
 
             {/* Grid - Staggered Animation */}
             <div className="grid grid-cols-2 gap-4 pb-8">
                 {filtered.map((item, index) => (
-                    <div
+                    <motion.div
                         key={item.id}
-                        className="flex flex-col gap-2 animate-scale-in"
-                        style={{ animationDelay: `${Math.min(index * 50, 300)}ms` }}
+                        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{
+                            duration: 0.4,
+                            delay: index * 0.08,
+                            ease: [0.34, 1.56, 0.64, 1]
+                        }}
+                        className="flex flex-col gap-2"
                     >
                         <ClothCard
                             item={item}
@@ -276,7 +282,7 @@ export function ClothesGrid({ showFilters, setShowFilters, refreshTrigger = 0 }:
                         <p className="text-caption-1 font-medium text-label-secondary text-center truncate px-1">
                             {item.tags?.sub_category || item.tags?.category}
                         </p>
-                    </div>
+                    </motion.div>
                 ))}
             </div>
 

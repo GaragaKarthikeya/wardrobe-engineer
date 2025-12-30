@@ -7,6 +7,9 @@ import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { triggerHaptic } from "@/lib/haptics";
 
+// Tiny placeholder for instant perceived loading
+const shimmerPlaceholder = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect width='40' height='40' fill='%23222'/%3E%3C/svg%3E";
+
 interface Props {
     item: ClothingItem;
     onToggle: (id: string, clean: boolean) => void;
@@ -19,9 +22,11 @@ interface Props {
 
 export function ClothCard({ item, onToggle, onEdit, onDelete, onSelect, selected, selectMode }: Props) {
     const clean = item.is_clean;
+    const isAccessory = item.tags?.category === 'Accessory';
     const [showMenu, setShowMenu] = useState(false);
     const [isPressed, setIsPressed] = useState(false);
     const [mounted, setMounted] = useState(false);
+    const [imageLoaded, setImageLoaded] = useState(false);
     const longPressTimer = useRef<NodeJS.Timeout | null>(null);
     const didLongPress = useRef(false);
 
@@ -61,7 +66,8 @@ export function ClothCard({ item, onToggle, onEdit, onDelete, onSelect, selected
 
         if (selectMode) {
             onSelect(item.id);
-        } else {
+        } else if (!isAccessory) {
+            // Only toggle clean/dirty for non-accessories
             onToggle(item.id, clean);
         }
     };
@@ -79,41 +85,58 @@ export function ClothCard({ item, onToggle, onEdit, onDelete, onSelect, selected
         if (action === 'select') onSelect(item.id);
     };
 
-    // Context Menu Portal
-    const contextMenu = showMenu && mounted ? createPortal(
+    // Context Menu Portal - Always mounted, visibility controlled
+    const contextMenu = mounted ? createPortal(
         <div
-            className="fixed inset-0 z-[9999] flex items-center justify-center liquid-overlay"
+            className={`fixed inset-0 z-[9999] flex items-center justify-center transition-all duration-200 ${showMenu ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
             onClick={closeMenu}
-            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+            style={{ 
+                position: 'fixed', 
+                top: 0, 
+                left: 0, 
+                right: 0, 
+                bottom: 0,
+                backgroundColor: showMenu ? 'rgba(0,0,0,0.5)' : 'transparent',
+                backdropFilter: showMenu ? 'blur(8px)' : 'none',
+                WebkitBackdropFilter: showMenu ? 'blur(8px)' : 'none',
+            }}
         >
             <div
-                className="w-[300px] rounded-[28px] overflow-hidden liquid-glass-elevated animate-scale-in"
+                className={`w-[300px] rounded-[28px] overflow-hidden liquid-glass-elevated transition-all duration-200 ${showMenu ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}
                 onClick={e => e.stopPropagation()}
-                style={{
-                    animation: 'scaleIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
-                }}
             >
                 {/* Header with Close Button */}
                 <div className="px-4 py-4 border-b border-white/10 flex items-center gap-3">
-                    <div className="w-14 h-14 rounded-xl relative overflow-hidden bg-[#3A3A3C] flex-shrink-0">
-                        <Image src={item.image_url} alt="" fill className="object-cover" />
+                    <div className="w-14 h-14 rounded-xl relative overflow-hidden bg-white/5 flex-shrink-0">
+                        {/* Use same cached image with priority loading */}
+                        <Image 
+                            src={item.image_url} 
+                            alt="" 
+                            fill 
+                            className="object-cover" 
+                            sizes="56px"
+                            placeholder="blur"
+                            blurDataURL={shimmerPlaceholder}
+                        />
                     </div>
                     <div className="flex-1 min-w-0">
                         <p className="text-[15px] font-semibold text-white truncate">
                             {item.tags?.sub_category || item.tags?.category || 'Item'}
                         </p>
-                        <p className="text-[13px] text-white/60 flex items-center gap-1.5 mt-0.5">
-                            <span
-                                className="w-2 h-2 rounded-full"
-                                style={{
-                                    backgroundColor: clean ? '#FFFFFF' : 'rgba(255,255,255,0.15)',
-                                    boxShadow: clean
-                                        ? '0 0 6px rgba(255, 255, 255, 0.5)'
-                                        : 'none'
-                                }}
-                            />
-                            {clean ? "Clean" : "Needs Wash"}
-                        </p>
+                        {!isAccessory && (
+                          <p className="text-[13px] text-white/60 flex items-center gap-1.5 mt-0.5">
+                              <span
+                                  className="w-2 h-2 rounded-full"
+                                  style={{
+                                      backgroundColor: clean ? '#FFFFFF' : 'rgba(255,255,255,0.15)',
+                                      boxShadow: clean
+                                          ? '0 0 6px rgba(255, 255, 255, 0.5)'
+                                          : 'none'
+                                  }}
+                              />
+                              {clean ? "Clean" : "Needs Wash"}
+                          </p>
+                        )}
                     </div>
                     <button
                         onClick={closeMenu}
@@ -129,7 +152,7 @@ export function ClothCard({ item, onToggle, onEdit, onDelete, onSelect, selected
                         onClick={() => handleAction('edit')}
                         className="w-full flex items-center justify-between px-4 py-4 active:bg-white/5 transition-colors"
                     >
-                        <span className="text-[17px] text-white">View Details</span>
+                        <span className="text-[17px] text-white">Details</span>
                         <Pencil size={20} className="text-white/50" />
                     </button>
 
@@ -139,7 +162,7 @@ export function ClothCard({ item, onToggle, onEdit, onDelete, onSelect, selected
                         onClick={() => handleAction('select')}
                         className="w-full flex items-center justify-between px-4 py-4 active:bg-white/5 transition-colors"
                     >
-                        <span className="text-[17px] text-white">Select Item</span>
+                        <span className="text-[17px] text-white">Select</span>
                         <CheckCircle size={20} className="text-white/50" />
                     </button>
 
@@ -149,8 +172,8 @@ export function ClothCard({ item, onToggle, onEdit, onDelete, onSelect, selected
                         onClick={() => handleAction('delete')}
                         className="w-full flex items-center justify-between px-4 py-4 active:bg-white/5 transition-colors"
                     >
-                        <span className="text-[17px] text-white/60">Delete Item</span>
-                        <Trash2 size={20} className="text-white/60" />
+                        <span className="text-[17px] text-[#FF453A]">Delete</span>
+                        <Trash2 size={20} className="text-[#FF453A]/70" />
                     </button>
                 </div>
 
@@ -184,7 +207,7 @@ export function ClothCard({ item, onToggle, onEdit, onDelete, onSelect, selected
                     transition-all duration-200 ease-out
                     ${isPressed ? 'scale-[0.97] opacity-90' : 'scale-100 opacity-100'}
                     ${selected ? 'ring-[2.5px] ring-tint ring-offset-2 ring-offset-black' : ''}
-                    ${!clean ? 'opacity-50' : ''}
+                    ${!clean && !isAccessory ? 'opacity-50' : ''}
                 `}
                 style={{
                     transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
@@ -194,8 +217,12 @@ export function ClothCard({ item, onToggle, onEdit, onDelete, onSelect, selected
                     src={item.image_url}
                     alt=""
                     fill
-                    className={`object-cover transition-all duration-300 pointer-events-none select-none ${clean ? '' : 'grayscale'}`}
-                    sizes="50vw"
+                    className={`object-cover transition-all duration-300 pointer-events-none select-none ${!clean && !isAccessory ? 'grayscale' : ''}`}
+                    sizes="(max-width: 768px) 50vw, 25vw"
+                    loading="eager"
+                    onLoad={() => setImageLoaded(true)}
+                    placeholder="blur"
+                    blurDataURL={shimmerPlaceholder}
                 />
 
                 {/* Selection Overlay */}
@@ -216,7 +243,7 @@ export function ClothCard({ item, onToggle, onEdit, onDelete, onSelect, selected
                     </div>
                 )}
 
-                {!selectMode && (
+                {!selectMode && !isAccessory && (
                     <div className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10 shadow-sm">
                         <div
                             className="w-2.5 h-2.5 rounded-full"

@@ -1,5 +1,32 @@
 @import "tailwindcss";
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   GLOBAL SCROLLBAR HIDE - All Browsers
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+*::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+* {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Ensure html and body also have no scrollbar */
+html, body {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  overflow-x: hidden;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+}
+
 @theme {
   /* ═══════════════════════════════════════════════════════════════════════════
      iOS 26 LIQUID GLASS DESIGN SYSTEM
