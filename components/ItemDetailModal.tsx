@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ClothingItem, ClothingTags } from "@/types";
-import { Loader2, Check } from "lucide-react";
+import { Loader2, Check, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import { updateItemTagsAction } from "@/app/actions";
 import { useToast } from "./Toast";
@@ -40,30 +40,30 @@ export function ItemDetailModal({ item, onClose, onUpdate }: Props) {
         }
     };
 
-    const set = (k: keyof ClothingTags, v: any) => {
+    const set = (k: keyof ClothingTags, v: string) => {
         triggerHaptic('selection');
         setTags(p => ({ ...p, [k]: v }));
     };
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-end bg-black/40 backdrop-blur-sm transition-all animate-fade-in"
+            className="fixed inset-0 z-50 flex items-end bg-black/50 backdrop-blur-md animate-fade-in"
             onClick={onClose}
         >
             <div
-                className="w-full bg-grouped-secondary rounded-t-[20px] overflow-hidden animate-slide-up shadow-2xl ring-1 ring-white/10"
+                className="w-full bg-secondary-background rounded-t-[24px] overflow-hidden animate-slide-up shadow-premium-lg border-t border-white/[0.08]"
                 onClick={e => e.stopPropagation()}
             >
                 {/* Drag Handle */}
-                <div className="w-full h-6 bg-grouped-secondary flex items-center justify-center pt-2">
-                    <div className="w-9 h-1 rounded-full bg-fill-tertiary" />
+                <div className="w-full py-3 flex justify-center">
+                    <div className="w-10 h-1 rounded-full bg-fill-secondary" />
                 </div>
 
                 {/* Header */}
-                <div className="flex items-center justify-between px-4 pb-4 bg-grouped-secondary z-10 relative">
+                <div className="flex items-center justify-between px-5 pb-4">
                     <button
                         onClick={onClose}
-                        className="text-body text-tint active:opacity-50"
+                        className="text-body text-tint ios-btn font-medium"
                     >
                         Cancel
                     </button>
@@ -73,86 +73,93 @@ export function ItemDetailModal({ item, onClose, onUpdate }: Props) {
                     <button
                         onClick={save}
                         disabled={saving}
-                        className="text-headline font-semibold text-tint disabled:opacity-50 min-w-[40px] flex justify-end"
+                        className="text-headline font-semibold text-tint disabled:opacity-50 min-w-[50px] flex justify-end ios-btn"
                     >
-                        {saving ? <Loader2 size={20} className="animate-spin" /> : "Done"}
+                        {saving ? <div className="spinner" /> : "Done"}
                     </button>
                 </div>
 
-                {/* Content Scrollable */}
-                <div className="max-h-[85vh] overflow-y-auto pb-safe-bottom bg-grouped-background">
-
+                {/* Content */}
+                <div
+                    className="max-h-[80vh] overflow-y-auto pb-safe-bottom bg-system-background"
+                    style={{ paddingBottom: 'max(32px, env(safe-area-inset-bottom))' }}
+                >
                     {/* Image Header */}
-                    <div className="py-6 flex justify-center bg-grouped-background">
-                        <div className="relative w-32 h-32 rounded-2xl overflow-hidden shadow-lg ring-1 ring-white/10">
+                    <div className="py-6 flex justify-center bg-system-background">
+                        <div className="relative w-28 h-28 rounded-2xl overflow-hidden shadow-premium-lg ring-1 ring-white/10">
                             <Image src={item.image_url} alt="" fill className="object-cover" />
                         </div>
                     </div>
 
-                    <div className="space-y-6 px-4 pb-8">
+                    <div className="space-y-6 px-5">
                         {/* Section: Color */}
-                        <div>
-                            <span className="text-caption-1 uppercase text-label-secondary pl-4 mb-2 block tracking-wider">
+                        <div className="space-y-2">
+                            <span className="text-caption-1 uppercase text-label-tertiary font-semibold tracking-wider px-1">
                                 Color
                             </span>
                             <div className="ios-card overflow-hidden">
-                                <div className="ios-list-item">
+                                <div className="flex items-center justify-between p-4 border-b border-separator/30">
                                     <span className="text-body text-label-primary">Color Name</span>
                                     <input
                                         type="text"
                                         value={tags.color || ""}
                                         onChange={e => set("color", e.target.value)}
                                         placeholder="e.g. Navy Blue"
-                                        className="text-body text-label-secondary text-right bg-transparent outline-none placeholder:text-label-tertiary"
+                                        className="text-body text-label-secondary text-right bg-transparent outline-none placeholder:text-label-quaternary w-[140px]"
                                     />
                                 </div>
                             </div>
                         </div>
 
                         {/* Section: Category */}
-                        <div>
-                            <span className="text-caption-1 uppercase text-label-secondary pl-4 mb-2 block tracking-wider">
+                        <div className="space-y-2">
+                            <span className="text-caption-1 uppercase text-label-tertiary font-semibold tracking-wider px-1">
                                 Category
                             </span>
-                            <div className="flex p-0.5 rounded-[9px] bg-fill-tertiary overflow-x-auto">
-                                {CATEGORIES.slice(0, 4).map(c => {
-                                    const isSelected = tags.category === c;
-                                    return (
-                                        <button
-                                            key={c}
-                                            onClick={() => set("category", c)}
-                                            className={`flex-1 py-[6px] rounded-[7px] text-[13px] font-medium whitespace-nowrap px-2 transition-all ${isSelected
-                                                ? "bg-secondary-background text-label-primary shadow-sm"
-                                                : "text-label-secondary"
-                                                }`}
-                                        >
-                                            {c}
-                                        </button>
-                                    );
-                                })}
+                            <div className="ios-segmented">
+                                {CATEGORIES.slice(0, 4).map(c => (
+                                    <button
+                                        key={c}
+                                        onClick={() => set("category", c)}
+                                        className={`ios-segment ${tags.category === c ? 'active' : ''}`}
+                                    >
+                                        {c}
+                                    </button>
+                                ))}
                             </div>
                         </div>
 
                         {/* Section: Formality */}
-                        <div>
-                            <span className="text-caption-1 uppercase text-label-secondary pl-4 mb-2 block tracking-wider">
+                        <div className="space-y-2">
+                            <span className="text-caption-1 uppercase text-label-tertiary font-semibold tracking-wider px-1">
                                 Formality
                             </span>
                             <div className="ios-card overflow-hidden">
-                                {FORMALITY.map((f) => (
+                                {FORMALITY.map((f, index) => (
                                     <button
                                         key={f}
                                         onClick={() => set("formality", f)}
-                                        className="w-full flex items-center justify-between py-3 px-4 bg-secondary-background active:bg-fill-tertiary transition-colors border-b border-separator/50 last:border-0"
+                                        className={`
+                                            w-full flex items-center justify-between p-4 
+                                            active:bg-fill-tertiary transition-all
+                                            ${index < FORMALITY.length - 1 ? 'border-b border-separator/30' : ''}
+                                        `}
                                     >
-                                        <span className="text-body text-label-primary">{f}</span>
+                                        <span className={`text-body ${tags.formality === f ? 'text-tint font-medium' : 'text-label-primary'}`}>
+                                            {f}
+                                        </span>
                                         {tags.formality === f && (
-                                            <Check size={18} className="text-tint" strokeWidth={2.5} />
+                                            <div className="w-5 h-5 rounded-full bg-tint flex items-center justify-center">
+                                                <Check size={12} className="text-white" strokeWidth={3} />
+                                            </div>
                                         )}
                                     </button>
                                 ))}
                             </div>
                         </div>
+
+                        {/* Extra padding at bottom */}
+                        <div className="h-4" />
                     </div>
                 </div>
             </div>

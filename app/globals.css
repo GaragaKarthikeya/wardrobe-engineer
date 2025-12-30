@@ -1,48 +1,103 @@
 @import "tailwindcss";
 
 @theme {
-  /* System Colors */
+  /* ═══════════════════════════════════════════════════════════════════════════
+     APPLE-QUALITY DESIGN SYSTEM
+     Premium dark mode with iOS-inspired micro-interactions
+     ═══════════════════════════════════════════════════════════════════════════ */
+
+  /* System Colors - Pure AMOLED Dark */
   --color-system-background: #000000;
   --color-secondary-background: #1c1c1e;
   --color-tertiary-background: #2c2c2e;
   --color-grouped-background: #000000;
   --color-grouped-secondary: #1c1c1e;
 
-  /* Label Colors */
+  /* Label Colors - iOS Standard */
   --color-label-primary: #FFFFFF;
   --color-label-secondary: rgba(235, 235, 245, 0.6);
   --color-label-tertiary: rgba(235, 235, 245, 0.3);
   --color-label-quaternary: rgba(235, 235, 245, 0.18);
 
-  /* Separators - Much subtler */
-  --color-separator: rgba(84, 84, 88, 0.3);
+  /* Separators - Subtle */
+  --color-separator: rgba(84, 84, 88, 0.35);
 
-  /* Fills */
-  --color-fill-primary: rgba(120, 120, 128, 0.32);
-  --color-fill-secondary: rgba(120, 120, 128, 0.24);
-  --color-fill-tertiary: rgba(118, 118, 128, 0.12);
+  /* Fills - Layered */
+  --color-fill-primary: rgba(120, 120, 128, 0.36);
+  --color-fill-secondary: rgba(120, 120, 128, 0.28);
+  --color-fill-tertiary: rgba(118, 118, 128, 0.14);
+  --color-fill-quaternary: rgba(118, 118, 128, 0.08);
 
-  /* Semantic */
+  /* Accent Colors */
   --color-tint: #0A84FF;
+  --color-tint-light: rgba(10, 132, 255, 0.15);
   --color-green: #30D158;
+  --color-green-light: rgba(48, 209, 88, 0.15);
   --color-red: #FF453A;
+  --color-red-light: rgba(255, 69, 58, 0.15);
+  --color-orange: #FF9F0A;
+  --color-yellow: #FFD60A;
 
-  /* Fonts */
-  --font-sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  /* Premium Font Stack */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, system-ui, sans-serif;
 
-  /* Animations */
-  --animate-slide-up: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  --animate-fade-in: fadeIn 0.3s ease-out forwards;
-  --animate-scale-in: scaleIn 0.2s ease-out forwards;
-  --animate-pop: pop 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  /* ═══════════════════════════════════════════════════════════════════════════
+     MICRO-INTERACTION ANIMATIONS
+     iOS-style spring physics and smooth transitions
+     ═══════════════════════════════════════════════════════════════════════════ */
+
+  /* Slide Up - Spring Physics */
+  --animate-slide-up: slideUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+
+  /* Slide Up Fade - For toasts */
+  --animate-slide-up-fade: slideUpFade 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+
+  /* Fade In - Smooth */
+  --animate-fade-in: fadeIn 0.25s ease-out forwards;
+
+  /* Scale In - With bounce */
+  --animate-scale-in: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+
+  /* Pop - Tactile feedback */
+  --animate-pop: pop 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Bounce - Elastic */
+  --animate-bounce-in: bounceIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+
+  /* Pulse - Subtle attention */
+  --animate-pulse-subtle: pulseSubtle 2s ease-in-out infinite;
+
+  /* Shimmer - Loading effect */
+  --animate-shimmer: shimmer 1.5s ease-in-out infinite;
+
+  /* Check draw - Success animation */
+  --animate-check-draw: checkDraw 0.3s ease-out forwards;
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     KEYFRAME DEFINITIONS
+     ═══════════════════════════════════════════════════════════════════════════ */
 
   @keyframes slideUp {
     from {
       transform: translateY(100%);
+      opacity: 0;
     }
 
     to {
       transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideUpFade {
+    from {
+      transform: translateY(20px);
+      opacity: 0;
+    }
+
+    to {
+      transform: translateY(0);
+      opacity: 1;
     }
   }
 
@@ -58,11 +113,31 @@
 
   @keyframes scaleIn {
     from {
-      transform: scale(0.95);
+      transform: scale(0.92);
       opacity: 0;
     }
 
     to {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  @keyframes bounceIn {
+    0% {
+      transform: scale(0.3);
+      opacity: 0;
+    }
+
+    50% {
+      transform: scale(1.05);
+    }
+
+    70% {
+      transform: scale(0.95);
+    }
+
+    100% {
       transform: scale(1);
       opacity: 1;
     }
@@ -81,9 +156,66 @@
       transform: scale(1);
     }
   }
+
+  @keyframes pulseSubtle {
+
+    0%,
+    100% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: 0.7;
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  @keyframes checkDraw {
+    from {
+      stroke-dashoffset: 24;
+    }
+
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  @keyframes slideDown {
+    from {
+      transform: translateY(-100%);
+      opacity: 0;
+    }
+
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+
+    to {
+      transform: rotate(360deg);
+    }
+  }
 }
 
-/* Base Resets */
+/* ═══════════════════════════════════════════════════════════════════════════
+   BASE LAYER
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 @layer base {
   :root {
     color-scheme: dark;
@@ -95,6 +227,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     background: var(--color-system-background);
+    text-rendering: optimizeLegibility;
   }
 
   body {
@@ -104,13 +237,32 @@
     min-height: 100dvh;
     overscroll-behavior-y: none;
     user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  /* Smooth scrolling */
+  * {
+    scroll-behavior: smooth;
+  }
+
+  /* Selection color */
+  ::selection {
+    background: var(--color-tint-light);
+    color: var(--color-label-primary);
   }
 }
 
-/* Components & Utilities */
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPONENTS & UTILITIES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 @layer components {
 
-  /* Layout Utilities */
+  /* ─────────────────────────────────────────────────────────────────────────
+     Layout Utilities
+     ───────────────────────────────────────────────────────────────────────── */
+
   .safe-top {
     padding-top: max(20px, var(--safe-top));
   }
@@ -119,51 +271,71 @@
     padding-bottom: max(20px, var(--safe-bottom));
   }
 
-  /* Glassmorphism - Refined */
-  .glass {
-    background: rgba(30, 30, 30, 0.7);
-    backdrop-filter: blur(25px) saturate(180%);
-    -webkit-backdrop-filter: blur(25px) saturate(180%);
-    border-top: 0.5px solid rgba(255, 255, 255, 0.1);
+  .pb-safe-bottom {
+    padding-bottom: max(34px, calc(var(--safe-bottom) + 8px));
   }
 
-  /* Typography */
+  /* ─────────────────────────────────────────────────────────────────────────
+     Glassmorphism - Premium Blur
+     ───────────────────────────────────────────────────────────────────────── */
+
+  .glass {
+    background: rgba(28, 28, 30, 0.72);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .glass-light {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     Typography - iOS Human Interface
+     ───────────────────────────────────────────────────────────────────────── */
+
   .text-large-title {
     font-size: 34px;
     line-height: 41px;
     font-weight: 700;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.022em;
   }
 
   .text-title-1 {
     font-size: 28px;
     line-height: 34px;
     font-weight: 700;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.016em;
   }
 
   .text-title-2 {
     font-size: 22px;
     line-height: 28px;
     font-weight: 700;
+    letter-spacing: -0.012em;
   }
 
   .text-title-3 {
     font-size: 20px;
     line-height: 25px;
     font-weight: 600;
+    letter-spacing: -0.01em;
   }
 
   .text-headline {
     font-size: 17px;
     line-height: 22px;
     font-weight: 600;
+    letter-spacing: -0.004em;
   }
 
   .text-body {
     font-size: 17px;
     line-height: 22px;
     font-weight: 400;
+    letter-spacing: -0.004em;
   }
 
   .text-callout {
@@ -176,6 +348,13 @@
     font-size: 15px;
     line-height: 20px;
     font-weight: 500;
+    letter-spacing: -0.002em;
+  }
+
+  .text-footnote {
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 400;
   }
 
   .text-caption-1 {
@@ -184,20 +363,65 @@
     font-weight: 400;
   }
 
-  /* iOS Components */
+  .text-caption-2 {
+    font-size: 11px;
+    line-height: 13px;
+    font-weight: 400;
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     iOS Interactive Components - Premium Micro-Interactions
+     ───────────────────────────────────────────────────────────────────────── */
+
+  /* iOS Button - Tactile Press */
   .ios-btn {
-    transition: opacity 0.2s;
+    transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1),
+      opacity 0.15s ease;
+    will-change: transform;
   }
 
   .ios-btn:active {
-    opacity: 0.7;
+    transform: scale(0.96);
+    opacity: 0.8;
   }
 
+  /* iOS Button - Primary CTA with Glow */
+  .ios-btn-primary {
+    background: var(--color-tint);
+    color: white;
+    font-weight: 600;
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 0 0 0 rgba(10, 132, 255, 0);
+  }
+
+  .ios-btn-primary:active {
+    transform: scale(0.96);
+    box-shadow: 0 0 20px 4px rgba(10, 132, 255, 0.3);
+  }
+
+  /* iOS Card - Lift Effect */
   .ios-card {
     background-color: var(--color-secondary-background);
     border-radius: 12px;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+      box-shadow 0.2s ease;
   }
 
+  .ios-card-interactive {
+    background-color: var(--color-secondary-background);
+    border-radius: 12px;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+      box-shadow 0.2s ease,
+      opacity 0.15s ease;
+    will-change: transform;
+  }
+
+  .ios-card-interactive:active {
+    transform: scale(0.98);
+    opacity: 0.9;
+  }
+
+  /* iOS List Item - Press Feedback */
   .ios-list-item {
     display: flex;
     align-items: center;
@@ -205,16 +429,122 @@
     padding: 12px 16px;
     background-color: var(--color-secondary-background);
     border-bottom: 0.5px solid var(--color-separator);
-    transition: background-color 0.2s;
+    transition: background-color 0.15s ease,
+      transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
   .ios-list-item:active {
     background-color: var(--color-fill-tertiary);
+    transform: scale(0.99);
   }
 
   .ios-list-item:last-child {
     border-bottom: none;
   }
+
+  /* iOS Segmented Control */
+  .ios-segmented {
+    display: flex;
+    padding: 2px;
+    border-radius: 9px;
+    background: var(--color-fill-tertiary);
+    position: relative;
+  }
+
+  .ios-segment {
+    flex: 1;
+    padding: 6px 12px;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 500;
+    text-align: center;
+    color: var(--color-label-secondary);
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+    z-index: 1;
+  }
+
+  .ios-segment.active {
+    color: var(--color-label-primary);
+    background: var(--color-secondary-background);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15),
+      0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     Premium Shadows
+     ───────────────────────────────────────────────────────────────────────── */
+
+  .shadow-premium {
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.1),
+      0 4px 8px rgba(0, 0, 0, 0.12),
+      0 8px 16px rgba(0, 0, 0, 0.08);
+  }
+
+  .shadow-premium-lg {
+    box-shadow:
+      0 2px 4px rgba(0, 0, 0, 0.1),
+      0 8px 16px rgba(0, 0, 0, 0.15),
+      0 16px 32px rgba(0, 0, 0, 0.1);
+  }
+
+  .shadow-glow-tint {
+    box-shadow: 0 0 24px 4px rgba(10, 132, 255, 0.25);
+  }
+
+  .shadow-glow-green {
+    box-shadow: 0 0 16px 2px rgba(48, 209, 88, 0.3);
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     Status Indicators
+     ───────────────────────────────────────────────────────────────────────── */
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(0, 0, 0, 0.3);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  }
+
+  .status-clean {
+    background: var(--color-green);
+    box-shadow: 0 0 8px 2px rgba(48, 209, 88, 0.4);
+  }
+
+  .status-dirty {
+    background: var(--color-red);
+    box-shadow: 0 0 8px 2px rgba(255, 69, 58, 0.4);
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     Loading States
+     ───────────────────────────────────────────────────────────────────────── */
+
+  .skeleton {
+    background: linear-gradient(90deg,
+        var(--color-fill-quaternary) 0%,
+        var(--color-fill-tertiary) 50%,
+        var(--color-fill-quaternary) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+    border-radius: 8px;
+  }
+
+  .spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--color-fill-tertiary);
+    border-top-color: var(--color-tint);
+    border-radius: 50%;
+    animation: spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     Utility Classes
+     ───────────────────────────────────────────────────────────────────────── */
 
   .no-scrollbar::-webkit-scrollbar {
     display: none;
@@ -223,5 +553,41 @@
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+
+  /* Ring animations */
+  .ring-animate {
+    transition: box-shadow 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+      transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  /* Focus glow for inputs */
+  .focus-glow:focus-within {
+    box-shadow: 0 0 0 4px rgba(10, 132, 255, 0.2);
+    border-color: var(--color-tint);
+  }
+
+  /* Stagger animation delays */
+  .stagger-1 {
+    animation-delay: 50ms;
+  }
+
+  .stagger-2 {
+    animation-delay: 100ms;
+  }
+
+  .stagger-3 {
+    animation-delay: 150ms;
+  }
+
+  .stagger-4 {
+    animation-delay: 200ms;
+  }
+
+  /* Animated checkmark for success states */
+  .check-animated {
+    stroke-dasharray: 24;
+    stroke-dashoffset: 24;
+    animation: checkDraw 0.3s ease-out 0.1s forwards;
   }
 }

@@ -5,11 +5,10 @@ import { supabase } from "@/lib/supabase";
 import { ClothingItem } from "@/types";
 import { ClothCard } from "./ClothCard";
 import { ItemDetailModal } from "./ItemDetailModal";
-import { Loader2, X, Trash2 } from "lucide-react";
+import { X, Trash2, SlidersHorizontal } from "lucide-react";
 import { useToast } from "./Toast";
 import { triggerHaptic } from "@/lib/haptics";
 import { FilterModal } from "./FilterModal";
-import { Filter, SlidersHorizontal } from "lucide-react";
 
 export function ClothesGrid() {
     const { toast } = useToast();
@@ -105,21 +104,30 @@ export function ClothesGrid() {
             return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         });
 
+    const hasActiveFilters = filters.category !== 'all' || filters.status !== 'all';
+
+    // Loading State - Premium Skeleton
     if (loading) {
         return (
-            <div className="flex justify-center items-center h-40">
-                <Loader2 size={24} className="animate-spin text-label-tertiary" />
+            <div className="grid grid-cols-2 gap-4">
+                {[...Array(4)].map((_, i) => (
+                    <div key={i} className="aspect-square rounded-2xl skeleton" />
+                ))}
             </div>
         );
     }
 
+    // Empty State
     if (!items.length) {
         return (
-            <div className="text-center py-24 px-6 animate-scale-in">
-                <p className="text-title-3 mb-2 text-label-primary">
+            <div className="text-center py-24 px-6 animate-fade-in">
+                <div className="w-16 h-16 rounded-full bg-fill-tertiary mx-auto mb-4 flex items-center justify-center">
+                    <SlidersHorizontal size={28} className="text-label-tertiary" />
+                </div>
+                <p className="text-title-3 mb-2 text-label-primary font-semibold">
                     No Items Yet
                 </p>
-                <p className="text-body text-label-secondary">
+                <p className="text-body text-label-secondary max-w-[260px] mx-auto">
                     Tap the + button to add your first piece of clothing.
                 </p>
             </div>
@@ -130,20 +138,27 @@ export function ClothesGrid() {
         <>
             {/* Header Controls */}
             {!selectMode && (
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-5">
                     <button
                         onClick={() => { setShowFilters(true); triggerHaptic('light') }}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary-background active:bg-fill-tertiary transition-colors border border-white/5"
+                        className={`
+                            flex items-center gap-2 px-4 py-2 rounded-full ios-btn
+                            transition-all border
+                            ${hasActiveFilters
+                                ? 'bg-tint-light border-tint/30 text-tint'
+                                : 'bg-secondary-background border-separator/50 text-label-secondary'
+                            }
+                        `}
                     >
-                        <SlidersHorizontal size={16} className={filters.category !== 'all' ? 'text-tint' : 'text-label-secondary'} />
-                        <span className={`text-[15px] font-medium ${filters.category !== 'all' ? 'text-label-primary' : 'text-label-secondary'}`}>
+                        <SlidersHorizontal size={16} />
+                        <span className="text-[15px] font-medium">
                             {filters.category === 'all' ? 'Filter' : filters.category}
                         </span>
                     </button>
 
                     <button
                         onClick={() => { setSelectMode(true); triggerHaptic('light') }}
-                        className="text-[15px] font-medium text-tint px-2 py-1"
+                        className="text-[15px] font-semibold text-tint px-3 py-2 ios-btn"
                     >
                         Select
                     </button>
@@ -152,13 +167,13 @@ export function ClothesGrid() {
 
             {/* Select Mode Bar */}
             {selectMode && (
-                <div className="flex items-center justify-between p-3 rounded-xl mb-4 animate-fade-in bg-secondary-background border border-separator/50">
+                <div className="flex items-center justify-between p-3.5 rounded-2xl mb-5 animate-scale-in bg-secondary-background border border-separator/50 shadow-premium">
                     <button
                         onClick={exitSelectMode}
                         className="flex items-center gap-2 ios-btn px-2"
                     >
                         <X size={18} className="text-tint" strokeWidth={2.5} />
-                        <span className="text-body text-tint">Cancel</span>
+                        <span className="text-body font-medium text-tint">Cancel</span>
                     </button>
 
                     <span className="text-subheadline font-semibold text-label-primary">
@@ -168,24 +183,31 @@ export function ClothesGrid() {
                     <button
                         onClick={deleteSelected}
                         disabled={selected.size === 0}
-                        className="ios-btn px-2"
+                        className={`
+                            ios-btn px-3 py-2 rounded-full flex items-center gap-2 transition-all
+                            ${selected.size > 0 ? 'bg-red-light' : 'opacity-40'}
+                        `}
                     >
-                        <Trash2 size={20} className="text-red" />
+                        <Trash2 size={18} className="text-red" />
                     </button>
                 </div>
             )}
 
             {/* Hint text */}
             {!selectMode && items.length > 0 && (
-                <p className="text-caption-1 text-center mb-4 text-label-tertiary font-medium opacity-0 animate-[fadeIn_1s_delay-500ms_forwards]">
-                    Tap to toggle clean/dirty • Long press for options
+                <p className="text-caption-1 text-center mb-5 text-label-tertiary font-medium animate-fade-in">
+                    Tap to toggle • Long press for options
                 </p>
             )}
 
-            {/* Grid */}
-            <div className="grid grid-cols-2 gap-x-4 gap-y-6 pb-8">
-                {filtered.map(item => (
-                    <div key={item.id} className="flex flex-col gap-1.5 animate-scale-in">
+            {/* Grid - Staggered Animation */}
+            <div className="grid grid-cols-2 gap-4 pb-8">
+                {filtered.map((item, index) => (
+                    <div
+                        key={item.id}
+                        className="flex flex-col gap-2 animate-scale-in"
+                        style={{ animationDelay: `${Math.min(index * 50, 300)}ms` }}
+                    >
                         <ClothCard
                             item={item}
                             onToggle={toggle}
@@ -202,10 +224,19 @@ export function ClothesGrid() {
                 ))}
             </div>
 
+            {/* No Results */}
             {!filtered.length && (
-                <p className="text-center py-12 text-body text-label-tertiary">
-                    No items found matching your filters.
-                </p>
+                <div className="text-center py-16 animate-fade-in">
+                    <p className="text-body text-label-tertiary">
+                        No items match your filters.
+                    </p>
+                    <button
+                        onClick={() => setFilters({ category: 'all', status: 'all', sort: 'newest' })}
+                        className="mt-3 text-tint text-subheadline font-semibold ios-btn"
+                    >
+                        Clear Filters
+                    </button>
+                </div>
             )}
 
             {/* Modals */}

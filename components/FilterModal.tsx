@@ -35,100 +35,101 @@ export function FilterModal({ isOpen, onClose, filters, setFilters }: Props) {
 
     return (
         <div
-            className="fixed inset-0 z-[60] flex items-end bg-black/40 backdrop-blur-sm animate-fade-in"
+            className="fixed inset-0 z-[60] flex items-end bg-black/50 backdrop-blur-md animate-fade-in"
             onClick={onClose}
         >
             <div
-                className="w-full bg-grouped-secondary rounded-t-[20px] overflow-hidden animate-slide-up shadow-2xl ring-1 ring-white/10 pb-safe-bottom"
+                className="w-full bg-secondary-background rounded-t-[24px] overflow-hidden animate-slide-up shadow-premium-lg border-t border-white/[0.08]"
                 onClick={e => e.stopPropagation()}
+                style={{
+                    paddingBottom: 'max(24px, env(safe-area-inset-bottom))',
+                }}
             >
+                {/* Drag Handle */}
+                <div className="w-full py-3 flex justify-center">
+                    <div className="w-10 h-1 rounded-full bg-fill-secondary" />
+                </div>
+
                 {/* Header */}
-                <div className="flex items-center justify-between px-4 py-4 border-b border-separator/50 bg-grouped-secondary relative z-10">
-                    <span className="text-headline font-semibold text-label-primary">Filter & Sort</span>
+                <div className="flex items-center justify-between px-5 pb-4">
+                    <span className="text-title-3 font-bold text-label-primary">Filters</span>
                     <button
                         onClick={() => { triggerHaptic('light'); onClose(); }}
-                        className="w-8 h-8 rounded-full bg-fill-tertiary flex items-center justify-center text-label-secondary"
+                        className="w-8 h-8 rounded-full bg-fill-tertiary flex items-center justify-center text-label-secondary ios-btn"
                     >
                         <X size={16} strokeWidth={2.5} />
                     </button>
                 </div>
 
-                <div className="p-4 space-y-6 max-h-[70vh] overflow-y-auto">
+                <div className="px-5 space-y-6 max-h-[65vh] overflow-y-auto pb-4">
 
-                    {/* Categories */}
-                    <div className="space-y-2">
-                        <span className="text-caption-1 uppercase tracking-wider text-label-secondary font-medium pl-1">
+                    {/* Status - iOS Segmented Control */}
+                    <div className="space-y-3">
+                        <span className="text-caption-1 uppercase tracking-wider text-label-tertiary font-semibold">
+                            Status
+                        </span>
+                        <div className="ios-segmented">
+                            {(['all', 'clean', 'dirty'] as const).map((status) => (
+                                <button
+                                    key={status}
+                                    onClick={() => update('status', status)}
+                                    className={`ios-segment ${filters.status === status ? 'active' : ''}`}
+                                >
+                                    {status === 'all' ? 'All' : status === 'clean' ? 'Clean' : 'Dirty'}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Categories - Refined List */}
+                    <div className="space-y-3">
+                        <span className="text-caption-1 uppercase tracking-wider text-label-tertiary font-semibold">
                             Category
                         </span>
                         <div className="ios-card overflow-hidden">
-                            {CATEGORIES.map((cat) => (
+                            {CATEGORIES.map((cat, index) => (
                                 <button
                                     key={cat.id}
                                     onClick={() => update('category', cat.id)}
-                                    className="w-full flex items-center justify-between p-3.5 bg-secondary-background active:bg-fill-tertiary transition-colors border-b border-separator/50 last:border-0"
+                                    className={`
+                                        w-full flex items-center justify-between p-4 
+                                        active:bg-fill-tertiary transition-all
+                                        ${index < CATEGORIES.length - 1 ? 'border-b border-separator/40' : ''}
+                                    `}
                                 >
                                     <span className={`text-body ${filters.category === cat.id ? 'text-tint font-medium' : 'text-label-primary'}`}>
                                         {cat.label}
                                     </span>
                                     {filters.category === cat.id && (
-                                        <Check size={18} className="text-tint" strokeWidth={2.5} />
+                                        <div className="w-5 h-5 rounded-full bg-tint flex items-center justify-center">
+                                            <Check size={12} className="text-white" strokeWidth={3} />
+                                        </div>
                                     )}
                                 </button>
                             ))}
                         </div>
                     </div>
 
-                    {/* Status */}
-                    <div className="space-y-2">
-                        <span className="text-caption-1 uppercase tracking-wider text-label-secondary font-medium pl-1">
-                            Status
-                        </span>
-                        <div className="flex p-0.5 rounded-[9px] bg-fill-tertiary">
-                            <button
-                                onClick={() => update('status', 'all')}
-                                className={`flex-1 py-[6px] rounded-[7px] text-[13px] font-medium transition-all ${filters.status === 'all' ? 'bg-grouped-secondary text-label-primary shadow-sm' : 'text-label-secondary'}`}
-                            >
-                                All
-                            </button>
-                            <button
-                                onClick={() => update('status', 'clean')}
-                                className={`flex-1 py-[6px] rounded-[7px] text-[13px] font-medium transition-all ${filters.status === 'clean' ? 'bg-grouped-secondary text-label-primary shadow-sm' : 'text-label-secondary'}`}
-                            >
-                                Clean
-                            </button>
-                            <button
-                                onClick={() => update('status', 'dirty')}
-                                className={`flex-1 py-[6px] rounded-[7px] text-[13px] font-medium transition-all ${filters.status === 'dirty' ? 'bg-grouped-secondary text-label-primary shadow-sm' : 'text-label-secondary'}`}
-                            >
-                                Dirty
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Sort */}
-                    <div className="space-y-2">
-                        <span className="text-caption-1 uppercase tracking-wider text-label-secondary font-medium pl-1">
+                    {/* Sort - iOS Segmented Control */}
+                    <div className="space-y-3">
+                        <span className="text-caption-1 uppercase tracking-wider text-label-tertiary font-semibold">
                             Sort By
                         </span>
-                        <div className="ios-card overflow-hidden">
+                        <div className="ios-segmented">
                             <button
                                 onClick={() => update('sort', 'newest')}
-                                className="w-full flex items-center justify-between p-3.5 bg-secondary-background active:bg-fill-tertiary transition-colors border-b border-separator/50"
+                                className={`ios-segment ${filters.sort === 'newest' ? 'active' : ''}`}
                             >
-                                <span className="text-body text-label-primary">Newest First</span>
-                                {filters.sort === 'newest' && <Check size={18} className="text-tint" strokeWidth={2.5} />}
+                                Newest
                             </button>
                             <button
                                 onClick={() => update('sort', 'oldest')}
-                                className="w-full flex items-center justify-between p-3.5 bg-secondary-background active:bg-fill-tertiary transition-colors"
+                                className={`ios-segment ${filters.sort === 'oldest' ? 'active' : ''}`}
                             >
-                                <span className="text-body text-label-primary">Oldest First</span>
-                                {filters.sort === 'oldest' && <Check size={18} className="text-tint" strokeWidth={2.5} />}
+                                Oldest
                             </button>
                         </div>
                     </div>
-
-                    <div className="h-4" /> {/* Spacer */}
                 </div>
             </div>
         </div>

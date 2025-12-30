@@ -30,6 +30,7 @@ const LOADING_STEPS = [
 export default function Home() {
   const { toast } = useToast();
   const [view, setView] = useState<View>("closet");
+  const [isInputFocused, setIsInputFocused] = useState(false);
 
   const [prompt, setPrompt] = useState("");
   const [thinking, setThinking] = useState(false);
@@ -44,7 +45,6 @@ export default function Home() {
   useEffect(() => {
     const handleFirstInteraction = () => {
       prepareHaptics();
-      // Remove listeners after first interaction
       window.removeEventListener('touchstart', handleFirstInteraction);
       window.removeEventListener('click', handleFirstInteraction);
     };
@@ -105,7 +105,6 @@ export default function Home() {
     setResult(null);
     setLoadingStep(0);
 
-    // Loading Animation Cycle
     const interval = setInterval(() => {
       setLoadingStep(prev => (prev + 1) % LOADING_STEPS.length);
     }, 800);
@@ -139,12 +138,19 @@ export default function Home() {
     }
   };
 
+  const switchView = (newView: View) => {
+    if (view !== newView) {
+      triggerHaptic('light');
+      setView(newView);
+    }
+  };
+
   return (
     <div className="min-h-[100dvh] flex flex-col bg-system-background font-sans selection:bg-tint/30 tracking-tight">
       {/* Navigation Bar - iOS Large Title Style */}
-      <header className="safe-top px-4 sticky top-0 z-40 bg-system-background/80 backdrop-blur-xl border-b border-separator transition-all">
-        <div className="flex items-center justify-between py-2 min-h-[52px]">
-          <h1 className="text-large-title text-label-primary tracking-tight font-bold">
+      <header className="safe-top px-5 sticky top-0 z-40 bg-system-background/80 backdrop-blur-xl border-b border-separator/50">
+        <div className="flex items-center justify-between py-3 min-h-[56px]">
+          <h1 className="text-large-title text-label-primary font-bold">
             {view === "closet" ? "Closet" : "Stylist"}
           </h1>
 
@@ -152,17 +158,24 @@ export default function Home() {
             <button
               onClick={() => { fileRef.current?.click(); triggerHaptic('light'); }}
               disabled={uploading}
-              className="ios-btn flex items-center gap-1 text-tint font-semibold text-[17px]"
+              className="ios-btn flex items-center gap-1.5 text-tint font-semibold text-[17px] px-1"
             >
-              {uploading ? <Loader2 size={18} className="animate-spin" /> : <Plus size={22} />}
+              {uploading ? (
+                <div className="spinner" />
+              ) : (
+                <Plus size={24} strokeWidth={2} />
+              )}
             </button>
           )}
         </div>
 
-        {/* Progress Bar */}
+        {/* Progress Bar - Animated */}
         {uploading && (
-          <div className="h-0.5 rounded-full overflow-hidden mb-2 bg-fill-tertiary mx-1">
-            <div className="h-full transition-all duration-300 bg-tint" style={{ width: `${(progress.done / progress.total) * 100}%` }} />
+          <div className="h-[3px] rounded-full overflow-hidden mb-2 bg-fill-tertiary">
+            <div
+              className="h-full bg-tint transition-all duration-300 ease-out"
+              style={{ width: `${(progress.done / progress.total) * 100}%` }}
+            />
           </div>
         )}
       </header>
@@ -181,21 +194,26 @@ export default function Home() {
         {view === "stylist" && (
           <div className="flex flex-col h-full px-4 pb-[140px] pt-4 max-w-xl mx-auto w-full relative">
 
+            {/* Loading Overlay */}
             {thinking && (
-              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-system-background/80 backdrop-blur-sm animate-fade-in">
-                <div className="relative">
-                  <div className="w-12 h-12 rounded-full border-[3px] border-fill-tertiary border-t-tint animate-spin" />
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-system-background/90 backdrop-blur-sm animate-fade-in">
+                <div className="relative mb-6">
+                  <div className="w-14 h-14 rounded-full border-[3px] border-fill-tertiary border-t-tint animate-spin" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Sparkles size={20} className="text-tint animate-pulse" />
+                  </div>
                 </div>
-                <p className="mt-6 text-body font-medium text-label-secondary animate-pulse">
+                <p className="text-body font-medium text-label-secondary">
                   {LOADING_STEPS[loadingStep]}
                 </p>
               </div>
             )}
 
+            {/* Empty State */}
             {!result && !thinking ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-center px-4 animate-fade-in transition-all">
-                <div className="w-[72px] h-[72px] rounded-full flex items-center justify-center mb-6 bg-fill-tertiary/50 text-tint shadow-lg shadow-tint/10">
-                  <Sparkles size={32} />
+              <div className="flex-1 flex flex-col items-center justify-center text-center px-4 animate-fade-in">
+                <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-tint-light shadow-glow-tint">
+                  <Sparkles size={36} className="text-tint" />
                 </div>
                 <p className="text-title-2 mb-2 text-label-primary font-bold">
                   Personal Stylist
@@ -204,14 +222,14 @@ export default function Home() {
                   What are we dressing for today?
                 </p>
 
-                {/* Suggestions Chips */}
-                <div className="flex flex-wrap justify-center gap-2 max-w-sm">
+                {/* Suggestion Chips - Staggered Animation */}
+                <div className="flex flex-wrap justify-center gap-2.5 max-w-sm">
                   {SUGGESTIONS.map((s, i) => (
                     <button
                       key={s}
-                      onClick={() => { setPrompt(s); ask(s); }}
-                      className="px-4 py-2 rounded-full bg-fill-tertiary/50 hover:bg-fill-secondary active:scale-95 transition-all text-subheadline text-label-primary font-medium"
-                      style={{ animationDelay: `${i * 50}ms` }}
+                      onClick={() => { triggerHaptic('light'); setPrompt(s); ask(s); }}
+                      className="px-4 py-2.5 rounded-full bg-secondary-background border border-separator/50 ios-btn text-subheadline text-label-primary font-medium animate-scale-in"
+                      style={{ animationDelay: `${i * 60}ms` }}
                     >
                       {s}
                     </button>
@@ -219,18 +237,20 @@ export default function Home() {
                 </div>
               </div>
             ) : result && !thinking && (
-              <div className="flex-1 pt-2 animate-slide-up pb-4 overflow-y-auto no-scrollbar">
+              <div className="flex-1 pt-2 animate-fade-in pb-4 overflow-y-auto no-scrollbar">
                 {/* User Prompt Bubble */}
-                <div className="flex justify-end mb-8 px-1">
-                  <div className="bg-tint px-5 py-3 rounded-[20px] rounded-tr-[4px] max-w-[85%] shadow-sm">
-                    <p className="text-[17px] text-white leading-snug">{prompt}</p>
+                <div className="flex justify-end mb-6 px-1">
+                  <div className="bg-tint px-5 py-3 rounded-[22px] rounded-tr-[6px] max-w-[85%] shadow-premium">
+                    <p className="text-[17px] text-white leading-snug font-medium">{prompt}</p>
                   </div>
                 </div>
 
-                {/* Magazine Style Result */}
+                {/* Result Card */}
                 <div className="animate-scale-in">
-                  <div className="flex items-center gap-2 mb-4 px-1 opacity-60">
-                    <Sparkles size={14} className="text-label-secondary" />
+                  <div className="flex items-center gap-2 mb-4 px-1">
+                    <div className="w-6 h-6 rounded-full bg-tint-light flex items-center justify-center">
+                      <Sparkles size={12} className="text-tint" />
+                    </div>
                     <span className="text-caption-1 font-semibold text-label-secondary uppercase tracking-wider">
                       Curated Look
                     </span>
@@ -242,17 +262,21 @@ export default function Home() {
                       {result.items.map((item, i) => (
                         <div
                           key={item.id}
-                          className={`relative overflow-hidden rounded-xl bg-fill-tertiary ${i === 0 && result.items.length === 3 ? 'col-span-2 aspect-[16/9]' : 'aspect-[3/4]'}`}
+                          className={`
+                            relative overflow-hidden rounded-2xl bg-secondary-background shadow-premium
+                            ${i === 0 && result.items.length === 3 ? 'col-span-2 aspect-[16/9]' : 'aspect-[3/4]'}
+                          `}
+                          style={{ animationDelay: `${i * 100}ms` }}
                         >
                           <Image src={item.image_url} alt="" fill className="object-cover" />
-                          <div className="absolute inset-0 bg-black/10" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                         </div>
                       ))}
                     </div>
                   )}
 
-                  <div className="p-0 mb-8">
-                    <p className="text-[18px] leading-[1.5] text-label-primary font-normal">
+                  <div className="mb-8">
+                    <p className="text-[17px] leading-[1.6] text-label-primary">
                       {result.reason}
                     </p>
                   </div>
@@ -264,7 +288,7 @@ export default function Home() {
                         setPrompt("");
                         triggerHaptic('medium');
                       }}
-                      className="h-11 px-6 rounded-full bg-fill-tertiary hover:bg-fill-secondary active:scale-95 transition-all flex items-center gap-2"
+                      className="h-12 px-6 rounded-full bg-secondary-background border border-separator/50 ios-btn flex items-center gap-2.5"
                     >
                       <Sparkles size={16} className="text-tint" />
                       <span className="text-subheadline font-semibold text-label-primary">Style Another Look</span>
@@ -274,26 +298,39 @@ export default function Home() {
               </div>
             )}
 
-            {/* Compose Bar */}
-            <div className={`mt-auto pt-4 transition-all duration-300 ${result ? 'translate-y-0' : ''}`}>
-              <div className="flex gap-3 p-1.5 pl-4 rounded-full bg-[#1C1C1E] items-center ring-1 ring-white/10 focus-within:ring-tint/50 transition-all shadow-lg">
+            {/* Compose Bar - Premium */}
+            <div className="mt-auto pt-4">
+              <div
+                className={`
+                  flex gap-3 p-1.5 pl-5 rounded-full bg-secondary-background items-center 
+                  border transition-all duration-300 shadow-premium-lg
+                  ${isInputFocused ? 'border-tint/50 shadow-glow-tint' : 'border-separator/50'}
+                `}
+              >
                 <input
                   value={prompt}
                   onChange={e => setPrompt(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && !thinking && ask()}
+                  onFocus={() => setIsInputFocused(true)}
+                  onBlur={() => setIsInputFocused(false)}
                   placeholder="Describe the occasion..."
                   disabled={thinking}
-                  className="flex-1 py-2.5 text-[17px] bg-transparent outline-none text-label-primary placeholder:text-label-tertiary"
+                  className="flex-1 py-3 text-[17px] bg-transparent outline-none text-label-primary placeholder:text-label-tertiary"
                 />
                 <button
                   onClick={() => ask()}
                   disabled={thinking || !prompt.trim()}
-                  className="w-[34px] h-[34px] rounded-full flex items-center justify-center bg-tint disabled:opacity-30 disabled:hidden transition-all active:scale-90"
+                  className={`
+                    w-9 h-9 rounded-full flex items-center justify-center 
+                    transition-all duration-200 ease-out
+                    ${prompt.trim() ? 'bg-tint scale-100 opacity-100' : 'bg-fill-tertiary scale-90 opacity-50'}
+                  `}
+                  style={{ transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }}
                 >
                   {thinking ? (
-                    <div className="w-1.5 h-1.5 bg-white rounded-full animate-ping" />
+                    <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
                   ) : (
-                    <ArrowUp size={18} className="text-white" strokeWidth={3} />
+                    <ArrowUp size={18} className="text-white" strokeWidth={2.5} />
                   )}
                 </button>
               </div>
@@ -302,33 +339,42 @@ export default function Home() {
         )}
       </main>
 
-      {/* Floating Tab Bar - Dynamic Island Style */}
+      {/* Floating Tab Bar - Premium */}
       <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-slide-up-fade">
-        <div className="flex items-center justify-center gap-1 p-1 pr-2 rounded-full bg-[#1C1C1E]/90 backdrop-blur-2xl shadow-2xl ring-1 ring-white/10">
+        <div className="flex items-center gap-1 p-1.5 rounded-full bg-secondary-background/95 backdrop-blur-2xl shadow-premium-lg border border-white/[0.08]">
           <button
-            onClick={() => { setView("closet"); triggerHaptic('light'); }}
+            onClick={() => switchView("closet")}
             className={`
-              relative flex items-center gap-2 pl-4 pr-5 h-12 rounded-full transition-all duration-300
-              ${view === "closet" ? "bg-white text-black shadow-sm" : "text-label-secondary hover:text-white hover:bg-white/5"}
+              relative flex items-center gap-2 px-5 h-11 rounded-full 
+              transition-all duration-300 ease-out
+              ${view === "closet"
+                ? "bg-white text-black shadow-sm"
+                : "text-label-secondary"
+              }
             `}
+            style={{ transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }}
           >
-            <LayoutGrid size={20} strokeWidth={view === "closet" ? 2.5 : 2} />
-            <span className="text-[13px] font-semibold tracking-tight">Closet</span>
+            <LayoutGrid size={18} strokeWidth={view === "closet" ? 2.5 : 2} />
+            <span className="text-[13px] font-semibold">Closet</span>
           </button>
 
           <button
-            onClick={() => { setView("stylist"); triggerHaptic('light'); }}
+            onClick={() => switchView("stylist")}
             className={`
-              relative flex items-center gap-2 pl-4 pr-5 h-12 rounded-full transition-all duration-300
-              ${view === "stylist" ? "bg-white text-black shadow-sm" : "text-label-secondary hover:text-white hover:bg-white/5"}
+              relative flex items-center gap-2 px-5 h-11 rounded-full 
+              transition-all duration-300 ease-out
+              ${view === "stylist"
+                ? "bg-white text-black shadow-sm"
+                : "text-label-secondary"
+              }
             `}
+            style={{ transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }}
           >
-            <Sparkles size={20} strokeWidth={view === "stylist" ? 2.5 : 2} />
-            <span className="text-[13px] font-semibold tracking-tight">Stylist</span>
+            <Sparkles size={18} strokeWidth={view === "stylist" ? 2.5 : 2} />
+            <span className="text-[13px] font-semibold">Stylist</span>
           </button>
         </div>
       </nav>
     </div>
   );
 }
-
