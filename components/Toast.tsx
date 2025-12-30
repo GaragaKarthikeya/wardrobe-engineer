@@ -39,7 +39,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         }
     }, [show, isExiting]);
 
-    const iconColor = type === "success" ? "#30D158" : type === "error" ? "#FF453A" : "#8E8E93";
+    const iconColor = "#FFFFFF";
 
     const toastContent = show && mounted ? createPortal(
         <div

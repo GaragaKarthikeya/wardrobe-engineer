@@ -228,10 +228,10 @@ export function ClothesGrid() {
                         disabled={selected.size === 0}
                         className={`
                             ios-btn px-3 py-2 rounded-full flex items-center gap-2 transition-all
-                            ${selected.size > 0 ? 'bg-red-light' : 'opacity-40'}
+                            ${selected.size > 0 ? 'bg-white/10' : 'opacity-40'}
                         `}
                     >
-                        <Trash2 size={18} className="text-red" />
+                        <Trash2 size={18} className="text-white/60" />
                     </button>
                 </div>
             )}

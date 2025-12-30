@@ -107,10 +107,10 @@ export function ClothCard({ item, onToggle, onEdit, onDelete, onSelect, selected
                             <span
                                 className="w-2 h-2 rounded-full"
                                 style={{
-                                    backgroundColor: clean ? '#30D158' : '#FF453A',
+                                    backgroundColor: clean ? '#FFFFFF' : '#555555',
                                     boxShadow: clean
-                                        ? '0 0 6px rgba(48, 209, 88, 0.5)'
-                                        : '0 0 6px rgba(255, 69, 58, 0.5)'
+                                        ? '0 0 6px rgba(255, 255, 255, 0.5)'
+                                        : 'none'
                                 }}
                             />
                             {clean ? "Clean" : "Needs Wash"}
@@ -148,10 +148,10 @@ export function ClothCard({ item, onToggle, onEdit, onDelete, onSelect, selected
 
                     <button
                         onClick={() => handleAction('delete')}
-                        className="w-full flex items-center justify-between px-4 py-4 active:bg-red/10 transition-colors"
+                        className="w-full flex items-center justify-between px-4 py-4 active:bg-white/5 transition-colors"
                     >
-                        <span className="text-[17px] text-[#FF453A]">Delete Item</span>
-                        <Trash2 size={20} className="text-[#FF453A]" />
+                        <span className="text-[17px] text-white/60">Delete Item</span>
+                        <Trash2 size={20} className="text-white/60" />
                     </button>
                 </div>
 
@@ -222,10 +222,10 @@ export function ClothCard({ item, onToggle, onEdit, onDelete, onSelect, selected
                     <div
                         className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full"
                         style={{
-                            backgroundColor: clean ? '#30D158' : '#FF453A',
+                            backgroundColor: clean ? '#FFFFFF' : '#555555',
                             boxShadow: clean
-                                ? '0 0 8px 2px rgba(48, 209, 88, 0.5)'
-                                : '0 0 8px 2px rgba(255, 69, 58, 0.5)'
+                                ? '0 0 8px 2px rgba(255, 255, 255, 0.5)'
+                                : 'none'
                         }}
                     />
                 )}
