@@ -1,19 +1,20 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/lib/supabase";
 import { ClothingItem } from "@/types";
 import { ClothCard } from "./ClothCard";
 import { ItemDetailModal } from "./ItemDetailModal";
-import { X, Trash2, SlidersHorizontal } from "lucide-react";
+import { X, Trash2, SlidersHorizontal, RefreshCw } from "lucide-react";
 import { useToast } from "./Toast";
 import { triggerHaptic } from "@/lib/haptics";
 import { FilterModal } from "./FilterModal";
+import { loadItemsCacheFirst, updateItem, removeItem, syncFromServer } from "@/lib/sync";
 
 export function ClothesGrid() {
     const { toast } = useToast();
     const [items, setItems] = useState<ClothingItem[]>([]);
     const [loading, setLoading] = useState(true);
+    const [syncing, setSyncing] = useState(false);
 
     // Filter State
     const [showFilters, setShowFilters] = useState(false);
@@ -31,25 +32,52 @@ export function ClothesGrid() {
     const [selected, setSelected] = useState<Set<string>>(new Set());
     const [editing, setEditing] = useState<ClothingItem | null>(null);
 
-    const fetch = useCallback(async () => {
-        const { data } = await supabase.from("items").select("*").order("created_at", { ascending: false });
-        setItems(data as ClothingItem[] || []);
+    // Cache-first loading
+    const loadItems = useCallback(async () => {
+        setLoading(true);
+        await loadItemsCacheFirst(
+            // On local data (instant)
+            (localItems) => {
+                setItems(localItems);
+                setLoading(false);
+            },
+            // On server data (background)
+            (serverItems) => {
+                setItems(serverItems);
+                setLoading(false);
+            }
+        );
         setLoading(false);
     }, []);
 
-    useEffect(() => { fetch(); }, [fetch]);
+    useEffect(() => { loadItems(); }, [loadItems]);
+
+    // Manual refresh
+    const handleRefresh = async () => {
+        triggerHaptic();
+        setSyncing(true);
+        const { success, items: serverItems } = await syncFromServer();
+        if (success) {
+            setItems(serverItems);
+            toast("Synced", "success");
+        } else {
+            toast("Offline - showing cached data", "info");
+        }
+        setSyncing(false);
+    };
 
     const toggle = async (id: string, clean: boolean) => {
         triggerHaptic();
+        // Update locally immediately
         setItems(p => p.map(i => i.id === id ? { ...i, is_clean: !clean } : i));
-        await supabase.from("items").update({ is_clean: !clean }).eq("id", id);
+        // Sync to server in background
+        await updateItem(id, { is_clean: !clean });
     };
 
     const toggleSelect = (id: string) => {
         triggerHaptic();
         if (!selectMode) {
             setSelectMode(true);
-            triggerHaptic();
         }
         setSelected(p => {
             const n = new Set(p);
@@ -63,22 +91,23 @@ export function ClothesGrid() {
         const item = items.find(i => i.id === id);
         if (!item) return;
 
+        // Remove from UI immediately
         setItems(p => p.filter(i => i.id !== id));
-        await supabase.from("items").delete().eq("id", id);
-        const file = item.image_url.split('/').pop();
-        if (file) await supabase.storage.from("wardrobe").remove([file]);
+        // Sync deletion in background
+        await removeItem(id, item.image_url);
         toast("Deleted", "success");
     };
 
     const deleteSelected = async () => {
         triggerHaptic();
         const toDelete = items.filter(i => selected.has(i.id));
+
+        // Remove from UI immediately
         setItems(p => p.filter(i => !selected.has(i.id)));
 
+        // Sync deletions in background
         for (const item of toDelete) {
-            await supabase.from("items").delete().eq("id", item.id);
-            const file = item.image_url.split('/').pop();
-            if (file) await supabase.storage.from("wardrobe").remove([file]);
+            await removeItem(item.id, item.image_url);
         }
 
         toast(`${toDelete.length} deleted`, "success");
@@ -107,7 +136,7 @@ export function ClothesGrid() {
     const hasActiveFilters = filters.category !== 'all' || filters.status !== 'all';
 
     // Loading State - Premium Skeleton
-    if (loading) {
+    if (loading && items.length === 0) {
         return (
             <div className="grid grid-cols-2 gap-4">
                 {[...Array(4)].map((_, i) => (
@@ -139,22 +168,36 @@ export function ClothesGrid() {
             {/* Header Controls */}
             {!selectMode && (
                 <div className="flex items-center justify-between mb-5">
-                    <button
-                        onClick={() => { setShowFilters(true); triggerHaptic() }}
-                        className={`
-                            flex items-center gap-2 px-4 py-2 rounded-full ios-btn
-                            transition-all border
-                            ${hasActiveFilters
-                                ? 'bg-tint-light border-tint/30 text-tint'
-                                : 'bg-secondary-background border-separator/50 text-label-secondary'
-                            }
-                        `}
-                    >
-                        <SlidersHorizontal size={16} />
-                        <span className="text-[15px] font-medium">
-                            {filters.category === 'all' ? 'Filter' : filters.category}
-                        </span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => { setShowFilters(true); triggerHaptic() }}
+                            className={`
+                                flex items-center gap-2 px-4 py-2 rounded-full ios-btn
+                                transition-all border
+                                ${hasActiveFilters
+                                    ? 'bg-tint-light border-tint/30 text-tint'
+                                    : 'bg-secondary-background border-separator/50 text-label-secondary'
+                                }
+                            `}
+                        >
+                            <SlidersHorizontal size={16} />
+                            <span className="text-[15px] font-medium">
+                                {filters.category === 'all' ? 'Filter' : filters.category}
+                            </span>
+                        </button>
+
+                        {/* Sync Button */}
+                        <button
+                            onClick={handleRefresh}
+                            disabled={syncing}
+                            className="w-9 h-9 rounded-full bg-secondary-background border border-separator/50 flex items-center justify-center ios-btn"
+                        >
+                            <RefreshCw
+                                size={16}
+                                className={`text-label-secondary ${syncing ? 'animate-spin' : ''}`}
+                            />
+                        </button>
+                    </div>
 
                     <button
                         onClick={() => { setSelectMode(true); triggerHaptic() }}

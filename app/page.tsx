@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { ClothesGrid } from "@/components/ClothesGrid";
-import { ArrowUp, Sparkles, Plus, LayoutGrid, Loader2 } from "lucide-react";
+import { ArrowUp, Sparkles, Plus, LayoutGrid } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { analyzeImageAction, recommendOutfitAction } from "./actions";
 import { ClothingItem } from "@/types";
@@ -10,6 +10,7 @@ import Image from "next/image";
 import { useToast } from "@/components/Toast";
 import { convertToJpeg, SUPPORTED_FORMATS } from "@/lib/image";
 import { triggerHaptic, prepareHaptics } from "@/lib/haptics";
+import { saveLocalItem, getLocalItems } from "@/lib/db";
 
 type View = "closet" | "stylist";
 
@@ -81,7 +82,14 @@ export default function Home() {
         form.append("file", file);
         const tags = await analyzeImageAction(form);
 
-        await supabase.from("items").insert({ image_url: url, tags, is_clean: true });
+        // Insert to server
+        const { data } = await supabase.from("items").insert({ image_url: url, tags, is_clean: true }).select().single();
+
+        // Also save to local DB for instant access
+        if (data) {
+          await saveLocalItem(data as ClothingItem);
+        }
+
         ok++;
         triggerHaptic();
       } catch (err) {
@@ -93,7 +101,11 @@ export default function Home() {
     if (ok) toast(`${ok} item${ok > 1 ? 's' : ''} added`, "success");
     setUploading(false);
     if (fileRef.current) fileRef.current.value = "";
-    if (ok) window.location.reload();
+    // Trigger a soft refresh by switching views
+    if (ok) {
+      setView("stylist");
+      setTimeout(() => setView("closet"), 100);
+    }
   };
 
   const ask = async (overridePrompt?: string) => {
@@ -110,8 +122,16 @@ export default function Home() {
     }, 800);
 
     try {
-      const { data: inv } = await supabase.from("items").select("*");
-      if (!inv?.length) {
+      // Try local data first
+      let inv = await getLocalItems();
+
+      // Fallback to server if no local data
+      if (!inv.length) {
+        const { data } = await supabase.from("items").select("*");
+        inv = (data || []) as ClothingItem[];
+      }
+
+      if (!inv.length) {
         toast("Add items first", "info");
         setThinking(false);
         clearInterval(interval);
@@ -122,8 +142,9 @@ export default function Home() {
       clearInterval(interval);
 
       if (res.selected_item_ids?.length) {
-        const { data } = await supabase.from("items").select("*").in("id", res.selected_item_ids);
-        setResult({ items: data || [], reason: res.reasoning });
+        // Find items in our local inventory
+        const selectedItems = inv.filter(i => res.selected_item_ids.includes(i.id));
+        setResult({ items: selectedItems, reason: res.reasoning });
         triggerHaptic();
       } else {
         setResult({ items: [], reason: res.reasoning });
